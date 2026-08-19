@@ -1,127 +1,131 @@
-# Тайна лесной посылки
+# Forest Detectives: The Mystery of the Forest Parcel
 
-Добрая детективная приключенческая игра для детей 7–12 лет. Выберите одного из пяти героев, раскройте дело о пропавшей посылке, а затем помогите жителям большой лесной деревни справиться с робозверями и взбесившейся системой защиты Бобра.
+A family-friendly detective adventure for players aged 7–12. Choose one of five forest heroes, solve the mystery of a missing parcel, help the residents of a growing woodland village, and explore dangerous regions filled with animal and insect robots.
 
-## Вторая глава
+The game combines story quests, exploration, light action combat, puzzles, gathering, crafting, and local save slots. Progress can be approached at a comfortable pace, and most village activities are optional.
 
-Деревня — карта `4800×1600` с центральной площадью, большим западным районом, зданиями и выходами в Дикий лес и на Ферму тёти Дыни. Четыре основных задания можно выполнять параллельно:
+## Game Features
 
-- вернуть Белочке три потерянных письма;
-- принести Бобру пять деталей роботов;
-- обезвредить для Совы десять робозверей;
-- пройти пять комнат-ловушек в доме Бобра и отключить защиту.
+- **Five playable detectives.** Play as Wolf Cub, Fox Cub, Rabbit, Watermelon, or Sheepwolf. Each hero has different attributes, a signature tool, and a personal home challenge.
+- **A two-chapter adventure.** Investigate the missing parcel in the opening case, then travel to the Forest Village and take on several quests in parallel.
+- **A large connected world.** Explore the Forest Village, Wild Forest, Aunt Melon's Farm, Forest Mine, Mountain Hollow, Uncle Mole's Shop, five hero homes, and Beaver's trap-filled house.
+- **Village quests and resident errands.** Recover lost letters, collect robot parts, defeat forest machines, repair the village, water flowerbeds, deliver baked goods, light lamps, and help residents in the western district.
+- **Melee and ranged combat.** Use each hero's main weapon or switch to throwable tomatoes and cucumbers. Enemy health, rank, and combat status are displayed directly in the world.
+- **Four enemy ranks.** Weak, normal, and strong robots return after different delays, while bosses remain defeated. Every recurring robot can drop a new physical gear after each victory.
+- **Mountain encounters.** Fight robot beetles, wasps, and mantises before facing two bear guardians with different weapons and attack patterns.
+- **Gadgets with practical uses.** Buy a jetpack, magnetic glove, gas mask, and pulse shield from Uncle Mole. Gadgets open shortcuts and provide options in puzzles and combat.
+- **Resources and crafting.** Gather stones, sticks, ropes, and mechanical scrap. Craft a pickaxe and use it to mine iron and diamonds in a mine whose entrance and ore layout change with every new game.
+- **A safe farm area.** Visit Aunt Melon's Farm, meet its watermelon and melon residents, buy throwable vegetables, and explore without enemy encounters. Watermelon starts the adventure in the central garden bed.
+- **Beaver's challenge house.** Cross a collapsing floor, survive wall launchers and poison gas, solve a power-door mechanism, and use a jetpack to reach the final control panel. Room checkpoints preserve completed stages.
+- **Optional home challenges.** Visit the heroes' homes for lasso practice, mirror puzzles, evidence sorting, greenhouse controls, and batting training.
+- **Healing potions.** Every hero carries three potions. Each restores 33% of maximum health and recharges independently after 90 seconds.
+- **Local saving and loading.** Use an autosave and three manual slots. Saves include quests, health, inventory, purchases, gathered resources, mine generation, enemy respawn timers, dropped loot, defeated bosses, and Beaver House checkpoints.
 
-Финал «Деревня спасена» открывается после сдачи всех четырёх заданий. Три поручения жителей и испытания в домах героев необязательны, но приносят шестерёнки.
+## Adventure Structure
 
-### Деревня и дома
+### The Missing Parcel
 
-- Ёжик Тим просит полить три клумбы, Барсучиха Марта — доставить выпечку, а Енот Филя — зажечь четыре фонаря. Каждое поручение приносит `4` шестерёнки.
-- Западнее дома Бобра открыт новый район с тремя домами и широкими тропами. Медведица Злата просит собрать грибы, Козлик Лучик — починить ограды, а Лягушонок Квак — установить указатели. За каждое поручение выдаются `4` шестерёнки и памятный предмет.
-- Невыбранные герои стоят возле своих домов. Домик Арбузика перенесён на Ферму тёти Дыни; остальные геройские дома остаются в деревне. В каждом доме есть одноразовое тематическое мини-испытание с наградой `2` шестерёнки.
-- При переходе между локациями герой появляется у соответствующего входа. После раскрытия тайны посылки он прибывает к своему дому (Арбузик — к выходу на ферму). Все нарисованные дороги деревни проходимы; физические преграды создают только здания, границы карты и небольшие контуры жителей.
-- На мирной ферме нет врагов. Там живут тётя Дыня, несколько арбузов и дынь с короткими диалогами. Если выбран Арбузик, он появляется прямо в центральной грядке.
-- В доме Бобра расположены проваливающийся пол, стенные пусковые установки, ядовитый газ, силовая дверь и пропасть. Стены, комнаты и пропасть имеют физические коллизии; после каждой комнаты сохраняется контрольная точка.
+The first chapter introduces the selected detective and the central mystery. Search for clues, question characters, and determine what happened to the parcel. Completing the case opens the road to the Forest Village.
 
-### Материалы Бобра
+### The Forest Village
 
-Рядом с Бобром стоит каталог безопасных учебных ловушек. За шестерёнки можно один раз купить комплект «Проваливающийся пол» за `5` и комплект «Падающая стена» за `7`. Покупки сохраняются в разделе наград рюкзака до начала новой игры.
+The second chapter is built around four main assignments that can be accepted and completed in parallel:
 
-### Овощная лавка и оружие
+1. Recover three lost letters for the Squirrel Postie.
+2. Bring five robot parts to Beaver.
+3. Disable ten forest robots for the Owl Guardian.
+4. Enter Beaver's house and shut down its malfunctioning defense system.
 
-Тётя Дыня продаёт помидоры и огурцы: `2` овоща стоят `1` шестерёнку. Овощи расходуются при броске и наносят `0,5` урона, поэтому обычного робозайца с `2 HP` нужно поразить четыре раза. Когда боезапас заканчивается, герой автоматически возвращается к своему основному оружию.
+Turning in all four assignments unlocks the **Village Saved** finale. Resident errands and hero-home challenges are optional sources of gears, keepsakes, and additional conversations.
 
-Клавиша `R` циклически переключает основное оружие, помидоры и огурцы. Пустые виды боезапаса пропускаются; выбранное оружие и остаток снарядов показаны в HUD.
+## Locations
 
-### Сила и возрождение робозверей
+| Location | What to Expect |
+|---|---|
+| Forest Clearing | The opening investigation and tutorial area |
+| Forest Village | A `4800×1600` hub with homes, shops, NPCs, quests, and several exits |
+| Wild Forest | Road-based exploration, animal robots, resources, a shifting mine entrance, and the mountain gate |
+| Aunt Melon's Farm | A peaceful farm, vegetable shop, resident dialogues, and Watermelon's home |
+| Forest Mine | Eight iron deposits and three diamond deposits, available after crafting a pickaxe |
+| Mountain Hollow | A `4800×1600` mountain route with robot insects and a two-guardian arena |
+| Uncle Mole's Shop | Gadget purchasing and equipment management |
+| Beaver's House | Five connected trap and puzzle rooms with checkpoints |
+| Hero Homes | Five single-screen locations with character-specific mini-challenges |
 
-Под полосой здоровья каждого врага показан его уровень:
+Wild Forest and Mountain Hollow use road and arena boundaries. Trees, cliffs, dense vegetation, rock formations, buildings, NPCs, and enemy bodies are solid obstacles rather than walk-through scenery.
 
-| Уровень | Враги | Возрождение |
+## Enemies and Respawning
+
+| Rank | Examples | Respawn Time |
 |---|---|---:|
-| Слабый | Робозайцы | 30 секунд |
-| Обычный | Робоволки | 60 секунд |
-| Сильный | Робокабаны | 90 секунд |
-| Босс | Усиленный робокабан | Не возрождается |
+| Weak | Robot hares | 30 seconds |
+| Normal | Robot wolves, beetles, and wasps | 60 seconds |
+| Strong | Robot boars and mantises | 90 seconds |
+| Boss | Reinforced boar and bear guardians | No respawn |
 
-Каждая победа, включая повторную победу над возродившимся робозверем, увеличивает общий счётчик задания Совы. После каждой победы на земле остаётся отдельная шестерёнка: её нужно подобрать клавишей `E`, после чего герой получает `1` шестерёнку, а находка засчитывается как деталь для задания Бобра. Боссы остаются побеждёнными навсегда и повторной награды не дают.
+Forest quest progress uses a cumulative victory counter, so robots defeated after respawning continue to count. Mountain enemies have a separate counter and do not affect the Owl or Beaver assignments. Each non-boss victory leaves a location-specific gear drop that can be collected with `E`.
 
-В Диком лесу герой и робозвери перемещаются только по связанным дорогам и боевым полянам. Деревья, заросли и каменные завалы непроходимы. Физические тела героя и врагов сталкиваются: пройти друг сквозь друга нельзя.
+## Equipment and Economy
 
-### Горная Лощина
+Gears are earned from robots, quests, errands, hidden scrap, and home challenges. Rewards and purchases are one-time, so the game does not require repeated reward farming.
 
-После первой победы над робокабаном-боссом на востоке Дикого леса открывается проход в Горную Лощину — карту `4800×1600` с горными тропами, ущельем и ареной стражников.
-
-- Шесть робожуков и шесть робоос имеют обычный уровень и возрождаются через 60 секунд.
-- Шесть робобогомолов имеют сильный уровень и возрождаются через 90 секунд.
-- В конце топорщик начинает бой первым, а медведь с огнемётом подключается, когда здоровье первого стражника опускается до половины.
-- Побеждённые медведи не возвращаются. За освобождение Лощины выдаются `4` железа, `2` алмаза и памятный знак.
-- Горные роботы оставляют шестерёнки, но не учитываются в старых заданиях Совы и Бобра. Их победы отображаются отдельным счётчиком.
-- Герой и враги удерживаются на горных тропах; скалы, обрывы и участки вне дорог непроходимы.
-
-### Лечебные зелья
-
-У каждого героя есть три лечебных зелья. Клавиша `H` расходует один готовый заряд и восстанавливает `33%` максимального здоровья. При полном здоровье заряд не тратится. Каждое использованное зелье независимо восстанавливается через `90` секунд; количество готовых зелий и ближайший таймер показаны в HUD и сохраняются вместе с игрой.
-
-### Ресурсы и лесная шахта
-
-В деревне, Диком лесу и на Ферме тёти Дыни лежат одноразовые запасы камней, палок, верёвок и технического хлама. Каждый тайник хлама содержит `10` шестерёнок. Собранные точки не появляются повторно до начала новой игры.
-
-Во вкладке «Ресурсы» можно создать каменную кирку по рецепту: `3` камня, `2` палки, `1` верёвка и `1` хлам. Кирка не ломается и позволяет добывать в шахте железо и алмазы.
-
-Вход в шахту появляется в одной из трёх точек Дикого леса. При новой игре выбираются новый вход и новое распределение руды; внутри одной сессии они остаются неизменными. В шахте расположены `8` железных и `3` алмазные жилы, добываемые клавишей `E`.
-
-### Сохранение и загрузка
-
-В главном меню доступны «Продолжить», загрузка трёх ручных слотов и новая игра. Автосейв обновляется при выборе героя и при переходах между локациями, включая возвращение после поражения. Изменения внутри текущей карты нужно сохранить вручную на вкладке «Сохранения» журнала либо довести до следующего перехода.
-
-При загрузке восстанавливаются герой, задания, здоровье, покупки, ресурсы, семя шахты, победы, лежащие трофеи и таймеры возрождения. Герой появляется у входа сохранённой локации, а живые враги начинают с полным здоровьем. Новая игра очищает автосейв, но сохраняет три ручных слота; каждый ручной слот можно отдельно перезаписать или удалить.
-
-### Магазин дядюшки Крота
-
-Шестерёнки выдаются за роботов, задания, поручения и домашние испытания. Награды и покупки одноразовые; повторно купить гаджет или получить ту же награду нельзя.
-
-| Гаджет | Цена | Действие по `Q` |
+| Gadget | Price | Use with `Q` |
 |---|---:|---|
-| Реактивный ранец | 12 | Автоматический перелёт через пропасть со стартовой площадки |
-| Магнитная перчатка | 8 | Притягивание отмеченных механизмов |
-| Противогаз | 8 | Защита от газа на 8 секунд, перезарядка 12 секунд |
-| Импульсный щит | 10 | Блок следующего удара в течение 2 секунд, перезарядка 6 секунд |
+| Jetpack | 12 gears | Automatically crosses a marked chasm from its launch pad |
+| Magnetic Glove | 8 gears | Pulls marked mechanisms within range |
+| Gas Mask | 8 gears | Protects from gas for 8 seconds; 12-second cooldown |
+| Pulse Shield | 10 gears | Blocks the next hit or volley for 2 seconds; 6-second cooldown |
 
-Первый купленный гаджет экипируется автоматически. Активный гаджет можно сменить в магазине или на вкладке «Гаджеты» журнала.
+Aunt Melon sells two tomatoes or two cucumbers for one gear. Thrown vegetables deal light damage: four hits are needed to defeat a standard robot hare. When vegetable ammunition runs out, the hero returns to their main weapon automatically.
 
-## Запуск
+Beaver also sells safe training versions of a collapsing floor kit and a falling wall kit. Purchased building materials are recorded in the rewards section of the journal.
 
-Требуется Node.js 24 LTS.
+## Controls
+
+- `WASD` or arrow keys — move.
+- `Shift` — run while stamina is available.
+- `E` — interact, talk, mine, or collect an item.
+- `Space` — attack in combat areas or perform an action in certain challenges.
+- `R` — cycle between the main weapon, tomatoes, and cucumbers.
+- `Q` — use the equipped gadget.
+- `T` — use a healing potion.
+- `I` — open the journal, inventory, resources, rewards, gadgets, and saves.
+- `Esc` — close the current window.
+
+Character dialogue appears along the bottom of the screen. Short instructions, combat warnings, and system notifications appear in a compact panel on the right.
+
+## Run Locally
+
+The project requires Node.js 24 LTS.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Vite покажет локальный адрес игры. Для production-сборки:
+Vite prints the local game address after startup. To create and preview a production build:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-Сцены для быстрой визуальной проверки: `?scene=forest-village`, `?scene=wild-forest`, `?scene=mountain-hollow`, `?scene=forest-mine`, `?scene=melon-farm`, `?scene=mole-shop`, `?scene=beaver-house` и `?scene=hero-home`. Для отладки конкретного героя можно добавить, например, `&hero=watermelon`.
+Useful scene shortcuts for visual testing:
 
-## Управление
+```text
+?scene=forest-village
+?scene=wild-forest
+?scene=mountain-hollow
+?scene=forest-mine
+?scene=melon-farm
+?scene=mole-shop
+?scene=beaver-house
+?scene=hero-home
+```
 
-- `WASD` или стрелки — движение.
-- `Shift` — бег с расходом энергии.
-- `E` — взаимодействие и подбор предметов.
-- `Пробел` — атака в Диком лесу и Горной Лощине, действие в некоторых испытаниях.
-- `Q` — активный гаджет.
-- `R` — переключить доступное оружие.
-- `H` — использовать лечебное зелье.
-- `I` — журнал с вкладками «Задания», «Гаджеты», «Ресурсы», «Награды» и «Сохранения».
-- `Esc` — закрыть окно.
+Add a hero query when needed, for example `&hero=watermelon`.
 
-Контекстные подсказки и игровые уведомления показываются компактно справа. Большая панель внизу используется только для диалогов с персонажами.
-
-## Проверки
+## Quality Checks
 
 ```bash
 npm run check
@@ -131,12 +135,12 @@ npm run build
 npm run test:e2e
 ```
 
-## Структура
+## Project Structure
 
-- `src/domain` — герои, задания, экономика, гаджеты, враги и состояние обеих глав.
-- `src/game/scenes` — игровые локации, мир, магазин, дома, ловушки и интерфейс.
-- `public/assets/maps` — объектные карты Tiled с коллизиями, NPC, порталами, ресурсами и заданиями.
-- `public/assets/interiors`, `gadgets`, `characters`, `npcs`, `enemies` и `world` — оригинальная мультяшная графика, включая ферму и её жителей.
-- `tests/unit` и `tests/e2e` — unit- и браузерные сценарии.
+- `src/domain` — characters, quests, economy, resources, gadgets, enemies, saves, and game state.
+- `src/game/scenes` — locations, combat areas, shops, homes, puzzles, and UI scenes.
+- `public/assets/maps` — Tiled object maps with collisions, roads, NPCs, portals, resources, and encounter points.
+- `public/assets` — character, enemy, NPC, gadget, interior, and world artwork.
+- `tests/unit` and `tests/e2e` — domain tests and browser-based game scenarios.
 
-Активная сессия хранится в памяти и в локальных слотах браузера. После поражения и загрузки сохраняются задания, покупки, предметы, ресурсы, кирка, руда, лесной и горный счётчики, трофеи, таймеры возрождения, побеждённые боссы и комнаты дома Бобра. Облачная синхронизация и перенос сохранений между браузерами не предусмотрены.
+The current session and save slots are stored in the browser. Cloud synchronization and save transfer between browsers are not included.

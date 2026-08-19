@@ -727,20 +727,20 @@ test("герой и робозверь физически не проходят 
   await expect(status).toHaveAttribute("data-player-on-road", "true")
 })
 
-test("клавиша H расходует зелье и лечит на 33 процента", async ({ page }) => {
+test("клавиша T расходует зелье и лечит на 33 процента", async ({ page }) => {
   await page.goto("/?scene=wild-forest&hero=sheepwolf")
   const status = page.locator("#game-status")
   await expect(status).toHaveAttribute("data-screen", "wild-forest")
   await page.evaluate(() => window.__FOREST_GAME__?.takeDamage(60))
   await expect(status).toHaveAttribute("data-health", "40")
-  await page.keyboard.press("h")
+  await page.keyboard.press("t")
   await expect(status).toHaveAttribute("data-health", "73")
   await expect(status).toHaveAttribute("data-healing-potions", "2")
   await expect(status).toHaveAttribute("data-healing-potion-ready-at", /\d+/)
 
-  await page.keyboard.press("h")
+  await page.keyboard.press("t")
   await expect(status).toHaveAttribute("data-health", "100")
   await expect(status).toHaveAttribute("data-healing-potions", "1")
-  await page.keyboard.press("h")
+  await page.keyboard.press("t")
   await expect(status).toHaveAttribute("data-healing-potions", "1")
 })

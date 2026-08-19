@@ -7,7 +7,7 @@ import { EventBus, GameEvents } from "../EventBus"
 import { COLORS } from "../ui"
 
 type MovementKeys = Record<
-  "W" | "A" | "S" | "D" | "SHIFT" | "SPACE" | "E" | "Q" | "R" | "H" | "I" | "ESC",
+  "W" | "A" | "S" | "D" | "SHIFT" | "SPACE" | "E" | "Q" | "R" | "T" | "I" | "ESC",
   Phaser.Input.Keyboard.Key
 >
 
@@ -69,7 +69,7 @@ export abstract class BaseWorldScene extends Phaser.Scene {
 
     const keyboard = this.input.keyboard
     if (!keyboard) throw new Error("Для игры требуется клавиатура")
-    this.movementKeys = keyboard.addKeys("W,A,S,D,SHIFT,SPACE,E,Q,R,H,I,ESC") as MovementKeys
+    this.movementKeys = keyboard.addKeys("W,A,S,D,SHIFT,SPACE,E,Q,R,T,I,ESC") as MovementKeys
     this.cursors = keyboard.createCursorKeys()
 
     EventBus.on("modal-state", this.handleModalState, this)
@@ -108,7 +108,7 @@ export abstract class BaseWorldScene extends Phaser.Scene {
 
     if (
       gameStore.state.chapter === 2 &&
-      Phaser.Input.Keyboard.JustDown(this.movementKeys.H)
+      Phaser.Input.Keyboard.JustDown(this.movementKeys.T)
     ) {
       const result = gameStore.useHealingPotion()
       if (result.used) {

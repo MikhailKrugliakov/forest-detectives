@@ -120,7 +120,7 @@ export class UIScene extends Phaser.Scene {
     this.potionText.setVisible(state.chapter === 2)
     this.controlsText.setText(
       state.chapter === 2
-        ? "УПРАВЛЕНИЕ\nWASD — идти\nShift — бег\nR — оружие\nQ — гаджет\nH — зелье\nПробел — атака\nE — действие"
+        ? "УПРАВЛЕНИЕ\nWASD — идти\nShift — бег\nR — оружие\nQ — гаджет\nT — зелье\nПробел — атака\nE — действие"
         : "УПРАВЛЕНИЕ\nWASD — идти\nShift — бежать\nE — осмотреть",
     )
     this.gearText.setText(`⚙️ ${state.gears}`)
