@@ -1,0 +1,112 @@
+import type { CharacterId, ErrandDefinition, ErrandId, LocationId } from "./types"
+
+export const ERRAND_IDS: readonly ErrandId[] = [
+  "garden-beds",
+  "bakery-delivery",
+  "village-lanterns",
+  "mushroom-hunt",
+  "fence-repair",
+  "trail-signs",
+]
+
+export const ERRANDS: Record<ErrandId, ErrandDefinition> = {
+  "garden-beds": {
+    id: "garden-beds",
+    npcName: "Ёжик Тим",
+    title: "Жаждущие клумбы",
+    description: "Полей три сухие клумбы возле домов.",
+    target: 3,
+    icon: "🌻",
+    reward: 4,
+  },
+  "bakery-delivery": {
+    id: "bakery-delivery",
+    npcName: "Барсучиха Марта",
+    title: "Тёплая доставка",
+    description: "Отнеси корзинки с булочками Белочке и Сове.",
+    target: 2,
+    icon: "🥐",
+    reward: 4,
+  },
+  "village-lanterns": {
+    id: "village-lanterns",
+    npcName: "Енот Филя",
+    title: "Вечерние фонари",
+    description: "Зажги четыре погасших фонаря вдоль деревенских дорог.",
+    target: 4,
+    icon: "🏮",
+    reward: 4,
+  },
+  "mushroom-hunt": {
+    id: "mushroom-hunt",
+    npcName: "Медведица Злата",
+    title: "Запасы западного района",
+    description: "Собери три корзинки грибов возле новых домов.",
+    target: 3,
+    icon: "🍄",
+    reward: 4,
+    rewardItem: {
+      id: "mushroom-token",
+      type: "reward",
+      name: "Грибной жетон",
+      description: "Подарок Златы за помощь с лесными запасами.",
+      icon: "🍄",
+    },
+  },
+  "fence-repair": {
+    id: "fence-repair",
+    npcName: "Козлик Лучик",
+    title: "Крепкие ограды",
+    description: "Почини три повреждённых участка забора в западном районе.",
+    target: 3,
+    icon: "🔨",
+    reward: 4,
+    rewardItem: {
+      id: "carpenter-ribbon",
+      type: "reward",
+      name: "Лента плотника",
+      description: "За аккуратный ремонт деревенских оград.",
+      icon: "🪚",
+    },
+  },
+  "trail-signs": {
+    id: "trail-signs",
+    npcName: "Лягушонок Квак",
+    title: "Понятные тропы",
+    description: "Установи три указателя на перекрёстках нового района.",
+    target: 3,
+    icon: "🪧",
+    reward: 4,
+    rewardItem: {
+      id: "trail-compass",
+      type: "reward",
+      name: "Компас троп",
+      description: "Памятный компас от хранителя деревенских указателей.",
+      icon: "🧭",
+    },
+  },
+}
+
+export const HOME_LOCATIONS: Record<CharacterId, LocationId> = {
+  wolf: "wolf-home",
+  fox: "fox-home",
+  rabbit: "rabbit-home",
+  watermelon: "watermelon-home",
+  sheepwolf: "sheepwolf-home",
+}
+
+export const LOCATION_LABELS: Record<LocationId, string> = {
+  "forest-clearing": "ЛЕСНАЯ ОПУШКА",
+  "forest-village": "ДЕРЕВНЯ В ЛЕСУ",
+  "wild-forest": "ДИКИЙ ЛЕС",
+  "mountain-hollow": "ГОРНАЯ ЛОЩИНА",
+  "forest-mine": "ЛЕСНАЯ ШАХТА",
+  "melon-farm": "ФЕРМА ТЁТИ ДЫНИ",
+  "mole-shop": "МАГАЗИН КРОТА",
+  "beaver-house": "ДОМ БОБРА",
+  "wolf-home": "ДОМ ВОЛЧОНКА",
+  "fox-home": "ДОМ ЛИСИЧКИ",
+  "rabbit-home": "ДОМ ЗАЙЧОНКА",
+  "watermelon-home": "ДОМ АРБУЗИКА",
+  "sheepwolf-home": "ДОМ ОВЦЕВОЛКА",
+}

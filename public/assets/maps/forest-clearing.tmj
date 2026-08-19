@@ -1,0 +1,66 @@
+{
+  "compressionlevel": -1,
+  "height": 25,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "image": "../world/forest-clearing.png",
+      "name": "background",
+      "offsetx": 0,
+      "offsety": 0,
+      "opacity": 1,
+      "type": "imagelayer",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 2,
+      "name": "collisions",
+      "objects": [
+        { "height": 85, "id": 1, "name": "north-edge", "rotation": 0, "type": "", "visible": true, "width": 1600, "x": 0, "y": 0 },
+        { "height": 100, "id": 2, "name": "south-edge", "rotation": 0, "type": "", "visible": true, "width": 1600, "x": 0, "y": 900 },
+        { "height": 1000, "id": 3, "name": "west-edge", "rotation": 0, "type": "", "visible": true, "width": 90, "x": 0, "y": 0 },
+        { "height": 1000, "id": 4, "name": "east-edge", "rotation": 0, "type": "", "visible": true, "width": 90, "x": 1510, "y": 0 },
+        { "height": 155, "id": 5, "name": "stump", "rotation": 0, "type": "", "visible": true, "width": 160, "x": 400, "y": 370 },
+        { "height": 130, "id": 6, "name": "burrow", "rotation": 0, "type": "", "visible": true, "width": 180, "x": 1215, "y": 70 },
+        { "height": 150, "id": 7, "name": "northwest-trees", "rotation": 0, "type": "", "visible": true, "width": 290, "x": 80, "y": 75 },
+        { "height": 140, "id": 8, "name": "southeast-bushes", "rotation": 0, "type": "", "visible": true, "width": 270, "x": 1180, "y": 775 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 3,
+      "name": "interactables",
+      "objects": [
+        { "id": 9, "name": "parcel-print", "point": true, "type": "clue", "visible": true, "x": 583, "y": 522 },
+        { "id": 10, "name": "ribbon", "point": true, "type": "clue", "visible": true, "x": 905, "y": 395 },
+        { "id": 11, "name": "cardboard", "point": true, "type": "clue", "visible": true, "x": 1197, "y": 245 },
+        { "id": 12, "name": "burrow", "point": true, "type": "location", "visible": true, "x": 1305, "y": 160 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 4,
+  "nextobjectid": 13,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.11.0",
+  "tileheight": 40,
+  "tilesets": [],
+  "tilewidth": 40,
+  "type": "map",
+  "version": "1.10",
+  "width": 40
+}

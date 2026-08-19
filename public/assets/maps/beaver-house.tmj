@@ -1,0 +1,52 @@
+{
+  "compressionlevel": -1,
+  "height": 40,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "image": "../interiors/beaver-house.png",
+      "name": "background",
+      "opacity": 1,
+      "type": "imagelayer",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 2,
+      "name": "collisions",
+      "objects": [
+        { "height": 100, "id": 1, "name": "north", "width": 2400, "x": 0, "y": 0 },
+        { "height": 80, "id": 2, "name": "south", "width": 2400, "x": 0, "y": 1520 },
+        { "height": 1600, "id": 3, "name": "west", "width": 80, "x": 0, "y": 0 },
+        { "height": 1600, "id": 4, "name": "east", "width": 80, "x": 2320, "y": 0 },
+        { "height": 400, "id": 5, "name": "floor-launcher-wall", "width": 90, "x": 885, "y": 110 },
+        { "height": 430, "id": 6, "name": "launcher-gas-wall", "width": 75, "x": 1490, "y": 100 },
+        { "height": 230, "id": 7, "name": "floor-lower-wall", "width": 180, "x": 760, "y": 725 },
+        { "height": 110, "id": 8, "name": "battery-north-wall", "width": 520, "x": 940, "y": 690 },
+        { "height": 210, "id": 9, "name": "gas-lower-wall", "width": 90, "x": 1510, "y": 530 },
+        { "height": 110, "id": 10, "name": "control-north-wall", "width": 340, "x": 2020, "y": 820 },
+        { "height": 210, "id": 11, "name": "control-west-wall", "width": 90, "x": 1990, "y": 820 },
+        { "height": 120, "id": 12, "name": "entrance-left-machinery", "width": 260, "x": 80, "y": 1000 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 3,
+  "nextobjectid": 13,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.11.0",
+  "tileheight": 40,
+  "tilesets": [],
+  "tilewidth": 40,
+  "type": "map",
+  "version": "1.10",
+  "width": 60
+}

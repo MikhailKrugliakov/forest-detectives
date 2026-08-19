@@ -1,0 +1,78 @@
+{
+  "compressionlevel": -1,
+  "height": 40,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "image": "../world/mountain-hollow-west.png",
+      "name": "background",
+      "offsetx": 0,
+      "offsety": 0,
+      "opacity": 1,
+      "type": "imagelayer",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 2,
+      "name": "collisions",
+      "objects": [
+        { "height": 60, "id": 1, "name": "north-edge", "width": 4800, "x": 0, "y": 0 },
+        { "height": 60, "id": 2, "name": "south-edge", "width": 4800, "x": 0, "y": 1540 },
+        { "height": 650, "id": 3, "name": "west-north", "width": 60, "x": 0, "y": 0 },
+        { "height": 650, "id": 4, "name": "west-south", "width": 60, "x": 0, "y": 950 },
+        { "height": 1600, "id": 5, "name": "east-edge", "width": 60, "x": 4740, "y": 0 },
+        { "height": 330, "id": 6, "name": "west-cliff-north", "width": 340, "x": 420, "y": 60 },
+        { "height": 420, "id": 7, "name": "west-cliff-south", "width": 380, "x": 500, "y": 1120 },
+        { "height": 240, "id": 8, "name": "ravine-north-1", "width": 430, "x": 1150, "y": 250 },
+        { "height": 300, "id": 9, "name": "ravine-south-1", "width": 420, "x": 1250, "y": 1120 },
+        { "height": 340, "id": 10, "name": "ravine-north-2", "width": 420, "x": 2050, "y": 60 },
+        { "height": 380, "id": 11, "name": "ravine-south-2", "width": 430, "x": 2100, "y": 1160 },
+        { "height": 230, "id": 12, "name": "ridge-north", "width": 400, "x": 2800, "y": 300 },
+        { "height": 300, "id": 13, "name": "ridge-south", "width": 420, "x": 2860, "y": 1120 },
+        { "height": 250, "id": 14, "name": "arena-north", "width": 800, "x": 4000, "y": 60 },
+        { "height": 250, "id": 15, "name": "arena-south", "width": 800, "x": 4000, "y": 1290 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 3,
+      "name": "world-objects",
+      "objects": [
+        { "id": 16, "name": "wild-forest", "point": true, "type": "portal", "x": 150, "y": 800 },
+        { "id": 17, "name": "mountain-stone-1", "point": true, "type": "resource-stone", "x": 430, "y": 760 },
+        { "id": 18, "name": "mountain-stone-2", "point": true, "type": "resource-stone", "x": 1460, "y": 780 },
+        { "id": 19, "name": "mountain-stone-3", "point": true, "type": "resource-stone", "x": 2480, "y": 980 },
+        { "id": 20, "name": "mountain-stone-4", "point": true, "type": "resource-stone", "x": 3580, "y": 840 },
+        { "id": 21, "name": "mountain-stick-1", "point": true, "type": "resource-stick", "x": 940, "y": 1030 },
+        { "id": 22, "name": "mountain-rope-1", "point": true, "type": "resource-rope", "x": 1880, "y": 620 },
+        { "id": 23, "name": "mountain-scrap-1", "point": true, "type": "resource-scrap", "x": 2700, "y": 720 },
+        { "id": 24, "name": "mountain-scrap-2", "point": true, "type": "resource-scrap", "x": 3790, "y": 1180 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 4,
+  "nextobjectid": 25,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.11.0",
+  "tileheight": 40,
+  "tilesets": [],
+  "tilewidth": 40,
+  "type": "map",
+  "version": "1.10",
+  "width": 120
+}

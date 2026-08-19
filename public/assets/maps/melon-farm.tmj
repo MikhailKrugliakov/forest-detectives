@@ -1,0 +1,78 @@
+{
+  "compressionlevel": -1,
+  "height": 40,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "image": "../world/melon-farm.png",
+      "name": "background",
+      "opacity": 1,
+      "type": "imagelayer",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 2,
+      "name": "collisions",
+      "objects": [
+        { "height": 55, "id": 1, "name": "north", "width": 2400, "x": 0, "y": 0 },
+        { "height": 55, "id": 2, "name": "south", "width": 2400, "x": 0, "y": 1545 },
+        { "height": 1600, "id": 3, "name": "west", "width": 55, "x": 0, "y": 0 },
+        { "height": 1600, "id": 4, "name": "east", "width": 55, "x": 2345, "y": 0 },
+        { "height": 560, "id": 5, "name": "stream", "width": 250, "x": 0, "y": 0 },
+        { "height": 450, "id": 6, "name": "aunt-house", "width": 520, "x": 390, "y": 70 },
+        { "height": 360, "id": 7, "name": "old-tree", "width": 390, "x": 900, "y": 30 },
+        { "height": 450, "id": 8, "name": "watermelon-house", "width": 500, "x": 1730, "y": 790 },
+        { "height": 180, "id": 9, "name": "northwest-grove", "width": 300, "x": 70, "y": 0 },
+        { "height": 160, "id": 10, "name": "northeast-grove", "width": 720, "x": 1620, "y": 0 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 3,
+      "name": "world-objects",
+      "objects": [
+        { "id": 20, "name": "gate-spawn", "point": true, "type": "spawn", "x": 430, "y": 1375 },
+        { "id": 21, "name": "watermelon-spawn", "point": true, "type": "spawn", "x": 1285, "y": 735 },
+        { "id": 22, "name": "forest-village", "point": true, "type": "portal", "x": 420, "y": 1430 },
+        { "id": 23, "name": "watermelon-home", "point": true, "type": "portal", "x": 1980, "y": 1270 },
+        { "id": 24, "name": "aunt-melon", "point": true, "type": "npc", "x": 650, "y": 590 },
+        { "id": 25, "name": "melon-mitya", "point": true, "type": "npc", "x": 1020, "y": 1110 },
+        { "id": 26, "name": "melon-lada", "point": true, "type": "npc", "x": 1590, "y": 1120 },
+        { "id": 27, "name": "watermelon-senya", "point": true, "type": "npc", "x": 920, "y": 770 },
+        { "id": 28, "name": "watermelon-anya", "point": true, "type": "npc", "x": 1530, "y": 620 },
+        { "id": 29, "name": "watermelon", "point": true, "type": "hero", "x": 1285, "y": 735 },
+        { "id": 30, "name": "farm-stone-1", "point": true, "type": "resource-stone", "x": 330, "y": 1010 },
+        { "id": 31, "name": "farm-stone-2", "point": true, "type": "resource-stone", "x": 1500, "y": 1420 },
+        { "id": 32, "name": "farm-stick-1", "point": true, "type": "resource-stick", "x": 960, "y": 1370 },
+        { "id": 33, "name": "farm-stick-2", "point": true, "type": "resource-stick", "x": 2130, "y": 660 },
+        { "id": 34, "name": "farm-rope-1", "point": true, "type": "resource-rope", "x": 1390, "y": 900 },
+        { "id": 35, "name": "farm-scrap-1", "point": true, "type": "resource-scrap", "x": 2240, "y": 1380 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 4,
+  "nextobjectid": 36,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.11.0",
+  "tileheight": 40,
+  "tilesets": [],
+  "tilewidth": 40,
+  "type": "map",
+  "version": "1.10",
+  "width": 60
+}
