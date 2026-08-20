@@ -54,11 +54,17 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("robot-mantis", "assets/enemies/robot-mantis.png")
     this.load.image("guardian-axe", "assets/enemies/guardian-axe.png")
     this.load.image("guardian-flamethrower", "assets/enemies/guardian-flamethrower.png")
+    this.load.image("robot-sparrow", "assets/enemies/robot-sparrow.png")
+    this.load.image("robot-owl", "assets/enemies/robot-owl.png")
+    this.load.image("robot-hawk", "assets/enemies/robot-hawk.png")
+    this.load.image("turtle-guardian", "assets/enemies/turtle-guardian.png")
     this.load.image("forest-village-bg", "assets/world/forest-village-expanded.png")
     this.load.image("forest-village-west-bg", "assets/world/forest-village-west.png")
     this.load.image("wild-forest-bg", "assets/world/wild-forest.png")
     this.load.image("mountain-hollow-west-bg", "assets/world/mountain-hollow-west.png")
     this.load.image("mountain-hollow-east-bg", "assets/world/mountain-hollow-east.png")
+    this.load.image("bird-pass-west-bg", "assets/world/bird-pass-west.png")
+    this.load.image("bird-pass-east-bg", "assets/world/bird-pass-east.png")
     this.load.image("forest-mine-bg", "assets/world/forest-mine.png")
     this.load.image("melon-farm-bg", "assets/world/melon-farm.png")
     this.load.image("mole-shop-bg", "assets/interiors/mole-shop.png")
@@ -76,6 +82,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.tilemapTiledJSON("forest-village-map", "assets/maps/forest-village.tmj")
     this.load.tilemapTiledJSON("wild-forest-map", "assets/maps/wild-forest.tmj")
     this.load.tilemapTiledJSON("mountain-hollow-map", "assets/maps/mountain-hollow.tmj")
+    this.load.tilemapTiledJSON("bird-pass-map", "assets/maps/bird-pass.tmj")
     this.load.tilemapTiledJSON("forest-mine-map", "assets/maps/forest-mine.tmj")
     this.load.tilemapTiledJSON("melon-farm-map", "assets/maps/melon-farm.tmj")
     this.load.tilemapTiledJSON("beaver-house-map", "assets/maps/beaver-house.tmj")
@@ -85,7 +92,7 @@ export class PreloadScene extends Phaser.Scene {
     const debugScene = import.meta.env.DEV
       ? new URLSearchParams(window.location.search).get("scene")
       : null
-    if (["forest-village", "wild-forest", "mountain-hollow", "forest-mine", "melon-farm", "mole-shop", "beaver-house", "hero-home"].includes(debugScene ?? "")) {
+    if (["forest-village", "wild-forest", "mountain-hollow", "bird-pass", "forest-mine", "melon-farm", "mole-shop", "beaver-house", "hero-home"].includes(debugScene ?? "")) {
       const debugHero = new URLSearchParams(window.location.search).get("hero")
       const hero: CharacterId = ["wolf", "fox", "rabbit", "watermelon", "sheepwolf"].includes(debugHero ?? "")
         ? debugHero as CharacterId
@@ -100,6 +107,11 @@ export class PreloadScene extends Phaser.Scene {
       if (debugScene === "mountain-hollow") {
         gameStore.defeatEnemy("boar-3")
         gameStore.setLocation("mountain-hollow")
+      }
+      if (debugScene === "bird-pass") {
+        gameStore.defeatEnemy("guardian-axe")
+        gameStore.defeatEnemy("guardian-flamethrower")
+        gameStore.setLocation("bird-pass")
       }
       if (debugScene === "beaver-house") {
         gameStore.acceptQuest("beaver-security")

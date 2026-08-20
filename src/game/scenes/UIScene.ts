@@ -9,7 +9,8 @@ import { QUEST_IDS, QUESTS } from "../../domain/quests"
 import { ERRAND_IDS, ERRANDS, LOCATION_LABELS } from "../../domain/village"
 import { SAVE_SLOTS, saveManager } from "../../domain/saves"
 import { healingPotionState } from "../../domain/healing"
-import type { BuildingMaterialId, ErrandId, GadgetId, ProduceId, PuzzleAnswer, QuestId, QuestStatus, SaveSlotId } from "../../domain/types"
+import { DIFFICULTIES, DIFFICULTY_IDS } from "../../domain/difficulty"
+import type { BuildingMaterialId, DifficultyId, ErrandId, GadgetId, ProduceId, PuzzleAnswer, QuestId, QuestStatus, SaveSlotId } from "../../domain/types"
 import { updateGameStatus } from "../../accessibility"
 import { EventBus, GameEvents } from "../EventBus"
 import { addButton, addPanel, COLORS, FONT } from "../ui"
@@ -38,6 +39,8 @@ export class UIScene extends Phaser.Scene {
   private notificationTimer: Phaser.Time.TimerEvent | null = null
   private dialogueTimer: Phaser.Time.TimerEvent | null = null
   private modalLocked = false
+  private pauseOpen = false
+  private pausedWorldScenes: string[] = []
   private inventoryTab: "quests" | "gadgets" | "resources" | "rewards" | "saves" = "quests"
 
   constructor() {
@@ -61,6 +64,7 @@ export class UIScene extends Phaser.Scene {
     EventBus.on(GameEvents.openMaterials, this.openMaterialsShop, this)
     EventBus.on(GameEvents.openProduceShop, this.openProduceShop, this)
     EventBus.on(GameEvents.mountainComplete, this.showMountainCompletion, this)
+    EventBus.on(GameEvents.birdPassComplete, this.showBirdPassCompletion, this)
     EventBus.on("close-modal", this.closeModal, this)
     this.input.keyboard?.on("keydown-ESC", this.handleEscape, this)
 
@@ -78,6 +82,7 @@ export class UIScene extends Phaser.Scene {
       EventBus.off(GameEvents.openMaterials, this.openMaterialsShop, this)
       EventBus.off(GameEvents.openProduceShop, this.openProduceShop, this)
       EventBus.off(GameEvents.mountainComplete, this.showMountainCompletion, this)
+      EventBus.off(GameEvents.birdPassComplete, this.showBirdPassCompletion, this)
       EventBus.off("close-modal", this.closeModal, this)
       this.input.keyboard?.off("keydown-ESC", this.handleEscape, this)
     })
@@ -101,6 +106,9 @@ export class UIScene extends Phaser.Scene {
       if (state.location === "mountain-hollow") {
         const guardians = ["guardian-axe", "guardian-flamethrower"].filter((id) => state.defeatedEnemies.includes(id)).length
         this.objectiveText.setText(`${location}  •  ПОБЕДЫ ${state.mountainEnemyDefeats}  •  СТРАЖНИКИ ${guardians}/2`)
+      } else if (state.location === "bird-pass") {
+        const turtle = state.birdPassCleared ? "ПОБЕЖДЁН" : "АКТИВЕН"
+        this.objectiveText.setText(`${location}  •  ПОБЕДЫ ${state.birdPassEnemyDefeats}  •  БРОНЕПАНЦИРЬ ${turtle}`)
       } else {
         this.objectiveText.setText(`${location}  •  ЗАДАНИЯ ${completed}/4  •  ПОБЕЖДЕНО ${state.totalEnemyDefeats}`)
       }
@@ -114,13 +122,13 @@ export class UIScene extends Phaser.Scene {
     const potions = healingPotionState(state.healingPotionReadyAt)
     const potionCooldown = potions.nextReadyAt == null ? "" : ` • ${Math.max(1, Math.ceil((potions.nextReadyAt - Date.now()) / 1000))}с`
     this.potionText.setText(`🧪 Зелья ${potions.ready}/3${potionCooldown}`)
-    this.healthBack.setVisible(state.chapter === 2)
-    this.healthFill.setVisible(state.chapter === 2)
-    this.healthText.setVisible(state.chapter === 2)
-    this.potionText.setVisible(state.chapter === 2)
+    this.healthBack.setVisible(state.chapter >= 2)
+    this.healthFill.setVisible(state.chapter >= 2)
+    this.healthText.setVisible(state.chapter >= 2)
+    this.potionText.setVisible(state.chapter >= 2)
     this.controlsText.setText(
-      state.chapter === 2
-        ? "УПРАВЛЕНИЕ\nWASD — идти\nShift — бег\nR — оружие\nQ — гаджет\nT — зелье\nПробел — атака\nE — действие"
+      state.chapter >= 2
+        ? `УПРАВЛЕНИЕ\nWASD — идти\nShift — бег\nR — оружие\nQ — гаджет\nT — зелье\nПробел — атака\nE — действие\nEsc — пауза\n${DIFFICULTIES[state.difficulty].name}`
         : "УПРАВЛЕНИЕ\nWASD — идти\nShift — бежать\nE — осмотреть",
     )
     this.gearText.setText(`⚙️ ${state.gears}`)
@@ -131,9 +139,9 @@ export class UIScene extends Phaser.Scene {
     const weaponName = weapon === "melee" ? character.equipment.name : PRODUCE[weapon].name
     const weaponIcon = weapon === "melee" ? character.equipment.icon : PRODUCE[weapon].icon
     this.weaponText.setText(`R: ${weaponIcon} ${weaponName}  •  ${weaponAmmo}`)
-    this.gearText.setVisible(state.chapter === 2)
-    this.gadgetText.setVisible(state.chapter === 2)
-    this.weaponText.setVisible(state.chapter === 2)
+    this.gearText.setVisible(state.chapter >= 2)
+    this.gadgetText.setVisible(state.chapter >= 2)
+    this.weaponText.setVisible(state.chapter >= 2)
   }
 
   private createHud(): void {
@@ -419,7 +427,7 @@ export class UIScene extends Phaser.Scene {
       }),
     )
 
-    if (state.chapter === 2) {
+    if (state.chapter >= 2) {
       elements.push(
         addButton(this, 300, 378, 150, 42, "Задания", () => this.switchInventoryTab("quests"), this.inventoryTab === "quests" ? COLORS.coral : 0x7d8b7f),
         addButton(this, 470, 378, 150, 42, "Гаджеты", () => this.switchInventoryTab("gadgets"), this.inventoryTab === "gadgets" ? COLORS.coral : 0x7d8b7f),
@@ -1013,29 +1021,29 @@ export class UIScene extends Phaser.Scene {
       this.add.image(465, 350, character.assetKey).setDisplaySize(145, 190),
       this.add.text(735, 290, "⛰️  ⛓️ ×4  💎 ×2", { fontFamily: FONT, fontSize: "42px" }).setOrigin(0.5),
       this.add.text(735, 382, "Оба медведя-стражника отключены.\nПолучен Знак Горной Лощины и редкие ресурсы!", { fontFamily: FONT, fontSize: "20px", fontStyle: "bold", color: "#345c4d", align: "center", lineSpacing: 8 }).setOrigin(0.5),
-      addButton(this, 505, 540, 285, 58, "Продолжить исследование", () => {
+      addButton(this, 505, 540, 285, 58, "Остаться в Лощине", () => {
         this.closeModal(true)
         updateGameStatus("mountain-hollow", "Горная Лощина свободна.")
       }, COLORS.leaf),
-      addButton(this, 810, 540, 265, 58, "Вернуться в Дикий лес", () => this.returnToWildForest(), COLORS.coral),
+      addButton(this, 810, 540, 265, 58, "В Птичий перевал", () => this.goToBirdPass(), COLORS.coral),
     ]
     this.modal = this.add.container(0, 0, elements).setDepth(470)
     this.setModalState(true)
   }
 
-  private returnToWildForest(): void {
+  private goToBirdPass(): void {
     this.modal?.destroy(true)
     this.modal = null
     this.modalLocked = false
-    gameStore.setLocation("wild-forest")
+    gameStore.setLocation("bird-pass")
     this.scene.stop("mountain-hollow")
-    this.scene.start("wild-forest")
+    this.scene.start("bird-pass")
   }
 
   private showChapterCompletion(): void {
     this.closeModal()
     this.modalLocked = true
-    updateGameStatus("chapter-complete", "Деревня спасена. Все задания выполнены.")
+    updateGameStatus("chapter-complete", "Деревня спасена. Путь к финалу второй главы остаётся открытым.")
     const character = gameStore.state.character ?? CHARACTERS[0]!
     const elements: Phaser.GameObjects.GameObject[] = []
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x071b17, 0.8).setInteractive()
@@ -1053,7 +1061,7 @@ export class UIScene extends Phaser.Scene {
       }).setOrigin(0.5),
       this.add.image(475, 345, character.assetKey).setDisplaySize(145, 190),
       this.add.text(740, 300, "📯  🛠️  🏅  🎖️", { fontFamily: FONT, fontSize: "45px" }).setOrigin(0.5),
-      this.add.text(740, 380, "Письма возвращены, робозвери обезврежены,\nа защита дома Бобра навсегда отключена!", {
+      this.add.text(740, 380, "Письма возвращены, робозвери обезврежены,\nа защита дома Бобра отключена. Приключение продолжается!", {
         fontFamily: FONT,
         fontSize: "20px",
         fontStyle: "bold",
@@ -1062,10 +1070,115 @@ export class UIScene extends Phaser.Scene {
         lineSpacing: 7,
       }).setOrigin(0.5),
       addButton(this, 510, 540, 270, 58, "Продолжить прогулку", () => this.closeModal(true), COLORS.leaf),
-      addButton(this, 795, 540, 250, 58, "Новая игра", () => this.restartGame(), COLORS.coral),
+      addButton(this, 795, 540, 250, 58, "В Дикий лес", () => this.goToWildForest(), COLORS.coral),
     )
     this.modal = this.add.container(0, 0, elements).setDepth(450)
     this.setModalState(true)
+  }
+
+  private goToWildForest(): void {
+    this.modal?.destroy(true)
+    this.modal = null
+    this.modalLocked = false
+    gameStore.setLocation("wild-forest")
+    this.scene.stop("forest-village")
+    this.scene.start("wild-forest")
+  }
+
+  private showBirdPassCompletion(): void {
+    this.closeModal(true)
+    this.modalLocked = true
+    updateGameStatus("bird-pass-complete", "Бронепанцирь побеждён. Вторая глава завершена.")
+    const character = gameStore.state.character ?? CHARACTERS[0]!
+    const elements: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(640, 360, 1280, 720, 0x071b17, 0.84).setInteractive(),
+      addPanel(this, 285, 92, 710, 536, COLORS.cream),
+      this.add.text(640, 145, "ПТИЧИЙ ПЕРЕВАЛ ОСВОБОЖДЁН!", { fontFamily: FONT, fontSize: "34px", fontStyle: "bold", color: "#173f38", stroke: "#9cf4ff", strokeThickness: 4 }).setOrigin(0.5),
+      this.add.image(455, 350, character.assetKey).setDisplaySize(145, 190),
+      this.add.text(745, 280, "🪶  ⚙️ ×8  🏅", { fontFamily: FONT, fontSize: "45px" }).setOrigin(0.5),
+      this.add.text(745, 382, "Робочерепаха Бронепанцирь отключена.\nВторая глава завершена — в деревне начинается зима.", { fontFamily: FONT, fontSize: "20px", fontStyle: "bold", color: "#345c4d", align: "center", lineSpacing: 8, wordWrap: { width: 440 } }).setOrigin(0.5),
+      addButton(this, 500, 548, 285, 58, "Остаться на перевале", () => {
+        this.closeModal(true)
+        updateGameStatus("bird-pass", "Птичий перевал свободен.")
+      }, COLORS.leaf),
+      addButton(this, 810, 548, 295, 58, "В деревню — глава 3", () => this.startChapterThreeFromPass(), COLORS.coral),
+    ]
+    this.modal = this.add.container(0, 0, elements).setDepth(480)
+    this.setModalState(true)
+  }
+
+  private startChapterThreeFromPass(): void {
+    this.modal?.destroy(true)
+    this.modal = null
+    this.modalLocked = false
+    gameStore.beginChapterThree()
+    this.scene.stop("bird-pass")
+    this.scene.start("forest-village")
+    updateGameStatus("chapter-three", "Глава 3. В деревне начинается снегопад.")
+  }
+
+  private openPause(): void {
+    if (this.modal || this.pauseOpen) return
+    this.pauseOpen = true
+    this.pausedWorldScenes = WORLD_SCENES.filter((key) => this.scene.isActive(key))
+    for (const key of this.pausedWorldScenes) this.scene.pause(key)
+    this.renderPauseModal()
+    updateGameStatus("pause-menu", `Пауза. Сложность: ${DIFFICULTIES[gameStore.state.difficulty].name}.`)
+  }
+
+  private renderPauseModal(): void {
+    this.modal?.destroy(true)
+    const difficulty = gameStore.state.difficulty
+    const elements: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(640, 360, 1280, 720, 0x071b17, 0.76).setInteractive(),
+      addPanel(this, 345, 75, 590, 570, COLORS.cream),
+      this.add.text(640, 125, "ПАУЗА", { fontFamily: FONT, fontSize: "38px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
+      this.add.text(640, 170, "Сложность можно изменить в любой момент", { fontFamily: FONT, fontSize: "17px", color: "#4f725d" }).setOrigin(0.5),
+    ]
+    DIFFICULTY_IDS.forEach((id, index) => {
+      const definition = DIFFICULTIES[id]
+      const y = 235 + index * 72
+      const selected = id === difficulty
+      elements.push(
+        addButton(this, 510, y, 250, 50, `${selected ? "✓ " : ""}${definition.name}`, () => this.selectDifficulty(id), selected ? COLORS.coral : COLORS.leafDark),
+        this.add.text(660, y, definition.description, { fontFamily: FONT, fontSize: "14px", color: "#345c4d", wordWrap: { width: 235 } }).setOrigin(0, 0.5),
+      )
+    })
+    elements.push(
+      addButton(this, 640, 570, 300, 54, "Продолжить  •  Esc", () => this.closePause(), COLORS.blue),
+    )
+    this.modal = this.add.container(0, 0, elements).setDepth(520)
+    this.setModalState(true)
+    const status = document.querySelector<HTMLElement>("#game-status")
+    if (status) status.dataset.pauseOpen = "true"
+  }
+
+  private selectDifficulty(id: DifficultyId): void {
+    if (gameStore.setDifficulty(id)) {
+      saveManager.save("auto")
+      EventBus.emit(GameEvents.showMessage, `Сложность: ${DIFFICULTIES[id].name}.`, 1500)
+    }
+    this.renderPauseModal()
+    updateGameStatus("pause-menu", `Пауза. Сложность: ${DIFFICULTIES[id].name}.`)
+  }
+
+  private closePause(): void {
+    if (!this.pauseOpen) return
+    this.modal?.destroy(true)
+    this.modal = null
+    this.modalLocked = false
+    this.pauseOpen = false
+    this.setModalState(false)
+    for (const key of this.pausedWorldScenes) {
+      if (this.scene.isPaused(key)) this.scene.resume(key)
+    }
+    this.pausedWorldScenes = []
+    const status = document.querySelector<HTMLElement>("#game-status")
+    if (status) {
+      status.dataset.pauseOpen = "false"
+      status.dataset.screen = gameStore.state.location
+      status.textContent = `Игра продолжена. ${LOCATION_LABELS[gameStore.state.location]}.`
+    }
   }
 
   private questStatusLabel(status: QuestStatus): string {
@@ -1076,6 +1189,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private closeModal(force = false): void {
+    if (this.pauseOpen) {
+      this.closePause()
+      return
+    }
     if (!this.modal || (this.modalLocked && !force)) return
     this.modal.destroy(true)
     this.modal = null
@@ -1086,7 +1203,9 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleEscape(): void {
-    this.closeModal()
+    if (this.pauseOpen) this.closePause()
+    else if (this.modal) this.closeModal()
+    else this.openPause()
   }
 
   private setModalState(open: boolean): void {
@@ -1104,6 +1223,7 @@ export class UIScene extends Phaser.Scene {
     this.scene.stop("forest-village")
     this.scene.stop("wild-forest")
     this.scene.stop("mountain-hollow")
+    this.scene.stop("bird-pass")
     this.scene.stop("forest-mine")
     this.scene.stop("melon-farm")
     this.scene.stop("mole-shop")

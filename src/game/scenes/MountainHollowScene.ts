@@ -8,7 +8,8 @@ import { ENEMY_RANK_LABELS } from "../../domain/quests"
 import { RESOURCES } from "../../domain/resources"
 import { calculateAttackDamage } from "../../domain/rules"
 import { MOUNTAIN_ROADS } from "../../domain/roads"
-import type { EnemyDefinition, ProduceId } from "../../domain/types"
+import { scaledEnemyHealth } from "../../domain/difficulty"
+import type { DifficultyId, EnemyDefinition, ProduceId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { CombatController } from "../CombatController"
 import { RoadCollisionController } from "../RoadCollisionController"
@@ -20,6 +21,7 @@ interface RuntimeEnemy {
   definition: EnemyDefinition
   sprite: Phaser.Physics.Arcade.Image
   hp: number
+  maxHp: number
   homeX: number
   homeY: number
   patrolAngle: number
@@ -46,6 +48,7 @@ export class MountainHollowScene extends BaseWorldScene {
   private nearestPickup: GearPickup | null = null
   private nearestResource: RuntimeResourceNode | null = null
   private atExit = false
+  private atBirdExit = false
   private lastPrompt = ""
   private readonly combat = new CombatController()
   private readonly roadCollision = new RoadCollisionController(MOUNTAIN_ROADS)
@@ -53,6 +56,7 @@ export class MountainHollowScene extends BaseWorldScene {
   private shieldLastUsed = -10000
   private returningToVillage = false
   private enemyPlayerCollisions = 0
+  private lastDifficulty: DifficultyId = "hard"
 
   constructor() {
     super("mountain-hollow")
@@ -66,6 +70,7 @@ export class MountainHollowScene extends BaseWorldScene {
     }
     gameStore.setLocation("mountain-hollow")
     this.resetRuntimeState()
+    this.lastDifficulty = gameStore.state.difficulty
     this.cameras.main.setBackgroundColor("#243b3f")
     this.add.image(1200, 800, "mountain-hollow-west-bg").setDisplaySize(2400, 1600).setDepth(0)
     this.add.image(3600, 800, "mountain-hollow-east-bg").setDisplaySize(2400, 1600).setDepth(0)
@@ -74,7 +79,9 @@ export class MountainHollowScene extends BaseWorldScene {
     const debugY = Number(debugParams?.get("y"))
     const spawn = Number.isFinite(debugX) && Number.isFinite(debugY) && debugParams?.has("x") && debugParams.has("y")
       ? { x: Phaser.Math.Clamp(debugX, 80, MOUNTAIN_WIDTH - 80), y: Phaser.Math.Clamp(debugY, 80, MOUNTAIN_HEIGHT - 80) }
-      : MOUNTAIN_ENTRY
+      : gameStore.state.entryFrom === "bird-pass"
+        ? { x: 4620, y: 820 }
+        : MOUNTAIN_ENTRY
     this.setupWorld(
       character,
       MOUNTAIN_WIDTH,
@@ -118,6 +125,7 @@ export class MountainHollowScene extends BaseWorldScene {
     const stableDelta = Math.min(delta, 50)
     this.updateWorldInput(stableDelta)
     if (this.modalOpen) return
+    this.syncDifficulty()
     this.updateEnemies(time, stableDelta)
     this.updateNearest()
     if (this.gadgetPressed()) this.useGadget(time)
@@ -125,6 +133,7 @@ export class MountainHollowScene extends BaseWorldScene {
     if (!this.interactionPressed()) return
     if (this.nearestResource) this.collectSurfaceResource(this.nearestResource)
     else if (this.nearestPickup) this.collectPickup(this.nearestPickup)
+    else if (this.atBirdExit && gameStore.state.mountainCleared) this.transitionTo("bird-pass", "bird-pass")
     else if (this.atExit) this.transitionTo("wild-forest", "wild-forest")
   }
 
@@ -135,6 +144,7 @@ export class MountainHollowScene extends BaseWorldScene {
     this.nearestPickup = null
     this.nearestResource = null
     this.atExit = false
+    this.atBirdExit = false
     this.lastPrompt = ""
     this.combat.reset()
     this.shieldUntil = 0
@@ -183,7 +193,8 @@ export class MountainHollowScene extends BaseWorldScene {
     healthBack.setDepth(3000)
     healthFill.setDepth(3001)
     rankText.setDepth(3002)
-    this.enemies.push({ definition, sprite, hp: definition.hp, homeX: sprite.x, homeY: sprite.y, patrolAngle: index * 1.27, healthBack, healthFill, rankText, nextSpecialAt: this.time.now + 800 + index * 90 })
+    const maxHp = scaledEnemyHealth(definition, gameStore.state.difficulty)
+    this.enemies.push({ definition, sprite, hp: maxHp, maxHp, homeX: sprite.x, homeY: sprite.y, patrolAngle: index * 1.27, healthBack, healthFill, rankText, nextSpecialAt: this.time.now + 800 + index * 90 })
     this.physics.add.collider(sprite, this.obstacles)
     this.combat.addSolidEnemyCollision(this, sprite, this.player, () => {
       this.enemyPlayerCollisions += 1
@@ -193,6 +204,13 @@ export class MountainHollowScene extends BaseWorldScene {
 
   private scheduleRespawn(definition: EnemyDefinition, index: number, delay: number): void {
     this.combat.scheduleRespawn(this, delay, () => this.spawnEnemy(definition, index))
+  }
+
+  private syncDifficulty(): void {
+    const difficulty = gameStore.state.difficulty
+    if (difficulty === this.lastDifficulty) return
+    this.combat.rescaleEnemies(this.enemies, this.lastDifficulty, difficulty)
+    this.lastDifficulty = difficulty
   }
 
   private updateEnemies(time: number, delta: number): void {
@@ -413,7 +431,7 @@ export class MountainHollowScene extends BaseWorldScene {
   private hitEnemy(enemy: RuntimeEnemy, damage: number, knockback = 28): void {
     const barWidth = enemy.definition.rank === "boss" ? 110 : 70
     const defeated = this.combat.hitEnemy(this, enemy, damage, this.lastDirection, barWidth, knockback)
-    if (enemy.definition.id === "guardian-axe" && enemy.hp <= enemy.definition.hp / 2) this.activateFlameGuardian()
+    if (enemy.definition.id === "guardian-axe" && enemy.hp <= enemy.maxHp / 2) this.activateFlameGuardian()
     if (!defeated) return
     const x = enemy.sprite.x
     const y = enemy.sprite.y
@@ -499,6 +517,7 @@ export class MountainHollowScene extends BaseWorldScene {
   private createExit(): void {
     this.add.text(150, 885, "←  ДИКИЙ ЛЕС", { fontFamily: FONT, fontSize: "20px", fontStyle: "bold", color: "#fff4cf", backgroundColor: "#173f38dd", padding: { x: 12, y: 7 } }).setOrigin(0.5).setDepth(1900)
     this.add.text(4380, 470, "АРЕНА СТРАЖНИКОВ", { fontFamily: FONT, fontSize: "20px", fontStyle: "bold", color: "#f2b5ff", backgroundColor: "#173f38dd", padding: { x: 12, y: 7 } }).setOrigin(0.5).setDepth(1900)
+    this.add.text(4640, 900, gameStore.state.mountainCleared ? "ПТИЧИЙ ПЕРЕВАЛ  →" : "ПРОХОД ЗАКРЫТ", { fontFamily: FONT, fontSize: "20px", fontStyle: "bold", color: gameStore.state.mountainCleared ? "#fff4cf" : "#ffb38f", backgroundColor: "#173f38dd", padding: { x: 12, y: 7 } }).setOrigin(0.5).setDepth(1900)
   }
 
   private updateNearest(): void {
@@ -523,11 +542,14 @@ export class MountainHollowScene extends BaseWorldScene {
       }
     }
     this.atExit = Phaser.Math.Distance.Between(this.player.x, this.player.y, 150, 800) < 145
+    this.atBirdExit = Phaser.Math.Distance.Between(this.player.x, this.player.y, 4640, 820) < 145
     const prompt = this.nearestResource
       ? resourcePrompt(this.nearestResource.resourceId)
       : this.nearestPickup
         ? "E — подобрать шестерёнку"
-        : this.atExit
+        : this.atBirdExit
+          ? gameStore.state.mountainCleared ? "E — войти в Птичий перевал" : "Сначала победи обоих стражников"
+          : this.atExit
           ? "E — вернуться в Дикий лес"
           : ""
     if (prompt !== this.lastPrompt) {
@@ -560,7 +582,7 @@ export class MountainHollowScene extends BaseWorldScene {
     status.dataset.mountainEnemies = String(gameStore.state.mountainEnemyDefeats)
     status.dataset.mountainGuardians = guardians
     status.dataset.mountainCleared = String(gameStore.state.mountainCleared)
-    status.dataset.mountainPhase = gameStore.state.mountainCleared ? "cleared" : flameActive || (axe && axe.hp <= axe.definition.hp / 2) ? "both" : "axe"
+    status.dataset.mountainPhase = gameStore.state.mountainCleared ? "cleared" : flameActive || (axe && axe.hp <= axe.maxHp / 2) ? "both" : "axe"
     status.dataset.mountainRanks = MOUNTAIN_ENEMIES.map(({ id, rank }) => `${id}:${rank}`).join(",")
   }
 }

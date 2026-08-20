@@ -28,12 +28,14 @@ export type CharacterId = "wolf" | "fox" | "rabbit" | "watermelon" | "sheepwolf"
 export type ClueId = "parcel-print" | "ribbon" | "cardboard"
 export type ItemType = "equipment" | "clue" | "reward" | "gadget" | "building-material" | "tool"
 export type PuzzleAnswer = "stream" | "tree" | "burrow"
-export type ChapterId = 1 | 2
+export type ChapterId = 1 | 2 | 3
+export type DifficultyId = "walk" | "story" | "hard" | "impossible"
 export type LocationId =
   | "forest-clearing"
   | "forest-village"
   | "wild-forest"
   | "mountain-hollow"
+  | "bird-pass"
   | "forest-mine"
   | "melon-farm"
   | "mole-shop"
@@ -54,8 +56,22 @@ export type EnemyType =
   | "robot-mantis"
   | "guardian-axe"
   | "guardian-flamethrower"
+  | "robot-sparrow"
+  | "robot-owl"
+  | "robot-hawk"
+  | "turtle-guardian"
 export type EnemyRank = "weak" | "normal" | "strong" | "boss"
-export type EnemyBehavior = "melee" | "rush" | "ranged" | "dash" | "axe" | "flamethrower"
+export type EnemyBehavior =
+  | "melee"
+  | "rush"
+  | "ranged"
+  | "dash"
+  | "axe"
+  | "flamethrower"
+  | "feather-single"
+  | "feather-fan"
+  | "feather-dive"
+  | "turtle"
 export type GadgetId = "jetpack" | "magnetic-glove" | "gas-mask" | "pulse-shield"
 export type BuildingMaterialId = "collapsing-floor" | "falling-wall"
 export type ProduceId = "tomato" | "cucumber"
@@ -107,7 +123,7 @@ export interface EnemyDefinition {
   id: string
   type: EnemyType
   assetKey: string
-  location: "wild-forest" | "mountain-hollow"
+  location: "wild-forest" | "mountain-hollow" | "bird-pass"
   behavior: EnemyBehavior
   x: number
   y: number
@@ -183,7 +199,7 @@ export interface EnemyGearDrop {
   x: number
   y: number
   containsPart: boolean
-  location: "wild-forest" | "mountain-hollow"
+  location: "wild-forest" | "mountain-hollow" | "bird-pass"
   collected: boolean
 }
 
@@ -191,6 +207,7 @@ export interface GameSession {
   character: CharacterDefinition | null
   inventory: InventoryItem[]
   chapter: ChapterId
+  difficulty: DifficultyId
   location: LocationId
   entryFrom: LocationId | null
   stamina: number
@@ -205,6 +222,7 @@ export interface GameSession {
   totalEnemyDefeats: number
   wildForestEnemyDefeats: number
   mountainEnemyDefeats: number
+  birdPassEnemyDefeats: number
   enemyDefeatCounts: Record<string, number>
   enemyGearDrops: EnemyGearDrop[]
   enemyRespawnAt: Record<string, number>
@@ -227,6 +245,9 @@ export interface GameSession {
   villageSaved: boolean
   mountainCleared: boolean
   mountainRewardClaimed: boolean
+  birdPassCleared: boolean
+  birdPassRewardClaimed: boolean
+  chapterTwoCompleted: boolean
 }
 
 export type SaveSlotId = "auto" | "slot-1" | "slot-2" | "slot-3"
@@ -239,14 +260,16 @@ export interface SaveSummary {
   characterId: CharacterId
   characterName: string
   chapter: ChapterId
+  difficulty: DifficultyId
   location: LocationId
   health: number
   gears: number
   mountainCleared: boolean
+  birdPassCleared: boolean
 }
 
 export interface SaveEnvelope {
-  version: 1
+  version: 2
   savedAt: string
   slot: SaveSlotId
   summary: SaveSummary

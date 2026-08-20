@@ -100,6 +100,7 @@ export const LOCATION_LABELS: Record<LocationId, string> = {
   "forest-village": "ДЕРЕВНЯ В ЛЕСУ",
   "wild-forest": "ДИКИЙ ЛЕС",
   "mountain-hollow": "ГОРНАЯ ЛОЩИНА",
+  "bird-pass": "ПТИЧИЙ ПЕРЕВАЛ",
   "forest-mine": "ЛЕСНАЯ ШАХТА",
   "melon-farm": "ФЕРМА ТЁТИ ДЫНИ",
   "mole-shop": "МАГАЗИН КРОТА",

@@ -17,6 +17,7 @@ import { BeaverHouseScene } from "./game/scenes/BeaverHouseScene"
 import { MelonFarmScene } from "./game/scenes/MelonFarmScene"
 import { MainMenuScene } from "./game/scenes/MainMenuScene"
 import { MountainHollowScene } from "./game/scenes/MountainHollowScene"
+import { BirdPassScene } from "./game/scenes/BirdPassScene"
 import { SAVE_SLOTS, saveManager } from "./domain/saves"
 import { healingPotionState } from "./domain/healing"
 
@@ -55,6 +56,7 @@ const config: Phaser.Types.Core.GameConfig = {
     ForestVillageScene,
     WildForestScene,
     MountainHollowScene,
+    BirdPassScene,
     ForestMineScene,
     MoleShopScene,
     HeroHomeScene,
@@ -82,6 +84,11 @@ gameStore.subscribe((state) => {
   status.dataset.mountainEnemies = String(state.mountainEnemyDefeats)
   status.dataset.mountainCleared = String(state.mountainCleared)
   status.dataset.mountainUnlocked = String(gameStore.isMountainUnlocked())
+  status.dataset.birdEnemies = String(state.birdPassEnemyDefeats)
+  status.dataset.birdPassCleared = String(state.birdPassCleared)
+  status.dataset.chapterTwoCompleted = String(state.chapterTwoCompleted)
+  status.dataset.difficulty = state.difficulty
+  status.dataset.snow = String(state.chapter === 3)
   status.dataset.uniqueEnemies = String(state.defeatedEnemies.length)
   status.dataset.enemyDefeatCounts = Object.entries(state.enemyDefeatCounts).map(([id, count]) => `${id}:${count}`).join(",")
   status.dataset.enemyGearDrops = String(state.enemyGearDrops.filter(({ collected }) => !collected).length)
@@ -114,6 +121,8 @@ if (import.meta.env.DEV) {
     collectClue: (id) => gameStore.collectClue(id),
     answer: (answer) => gameStore.answer(answer),
     beginVillage: () => gameStore.beginVillageChapter(),
+    beginChapterThree: () => gameStore.beginChapterThree(),
+    setDifficulty: (id) => gameStore.setDifficulty(id),
     setLocation: (location) => gameStore.setLocation(location),
     acceptQuest: (id) => gameStore.acceptQuest(id),
     turnInQuest: (id) => gameStore.turnInQuest(id),

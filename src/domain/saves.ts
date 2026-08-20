@@ -1,7 +1,7 @@
 import { GameStore, gameStore } from "./GameStore"
 import type { SaveEnvelope, SaveSlotId } from "./types"
 
-export const SAVE_VERSION = 1 as const
+export const SAVE_VERSION = 2 as const
 export const SAVE_SLOTS: readonly SaveSlotId[] = ["auto", "slot-1", "slot-2", "slot-3"]
 export const MANUAL_SAVE_SLOTS: readonly SaveSlotId[] = ["slot-1", "slot-2", "slot-3"]
 
@@ -34,7 +34,8 @@ function defaultStorage(): StorageLike {
 }
 
 export class SaveManager {
-  private readonly prefix = "forest-detectives:save:v1:"
+  private readonly prefix = "forest-detectives:save:v2:"
+  private readonly legacyPrefix = "forest-detectives:save:v1:"
   private unsubscribe: (() => void) | null = null
   private previousTransitionKey = ""
   private suspended = false
@@ -47,7 +48,7 @@ export class SaveManager {
   bindAutosave(): void {
     if (this.unsubscribe) return
     this.unsubscribe = this.store.subscribe((state) => {
-      const transitionKey = [state.character?.id ?? "", state.chapter, state.location, state.entryFrom ?? ""].join("|")
+      const transitionKey = [state.character?.id ?? "", state.chapter, state.location, state.entryFrom ?? "", state.difficulty].join("|")
       if (!this.previousTransitionKey) {
         this.previousTransitionKey = transitionKey
         return
@@ -69,10 +70,12 @@ export class SaveManager {
         characterId: state.character.id,
         characterName: state.character.name,
         chapter: state.chapter,
+        difficulty: state.difficulty,
         location: state.location,
         health: state.health,
         gears: state.gears,
         mountainCleared: state.mountainCleared,
+        birdPassCleared: state.birdPassCleared,
       },
       session: this.store.exportSerializedSession(),
     }
@@ -91,7 +94,8 @@ export class SaveManager {
     const restored = this.store.restoreSerializedSession(envelope.session)
     this.suspended = false
     const state = this.store.state
-    this.previousTransitionKey = [state.character?.id ?? "", state.chapter, state.location, state.entryFrom ?? ""].join("|")
+    this.previousTransitionKey = [state.character?.id ?? "", state.chapter, state.location, state.entryFrom ?? "", state.difficulty].join("|")
+    if (restored && envelope.version === SAVE_VERSION) this.save(slot)
     return restored
       ? { ok: true, message: "Сохранение загружено.", envelope }
       : { ok: false, message: "Сохранение несовместимо с текущей версией игры." }
@@ -99,16 +103,34 @@ export class SaveManager {
 
   read(slot: SaveSlotId): SaveEnvelope | null {
     try {
-      const raw = this.storage.getItem(this.key(slot))
+      const raw = this.storage.getItem(this.key(slot)) ?? this.storage.getItem(this.legacyKey(slot))
       if (!raw) return null
-      const envelope = JSON.parse(raw) as Partial<SaveEnvelope>
+      const envelope = JSON.parse(raw) as Partial<Omit<SaveEnvelope, "version">> & { version?: number }
       if (
-        envelope.version !== SAVE_VERSION ||
+        (envelope.version !== SAVE_VERSION && envelope.version !== 1) ||
         envelope.slot !== slot ||
         typeof envelope.savedAt !== "string" ||
         !envelope.summary ||
         !envelope.session
       ) return null
+      if (envelope.version === 1) {
+        const session = envelope.session as SaveEnvelope["session"]
+        session.difficulty ??= "hard"
+        session.birdPassEnemyDefeats ??= 0
+        session.birdPassCleared ??= false
+        session.birdPassRewardClaimed ??= false
+        session.chapterTwoCompleted ??= false
+        return {
+          ...envelope,
+          version: SAVE_VERSION,
+          summary: {
+            ...envelope.summary,
+            difficulty: "hard",
+            birdPassCleared: false,
+          },
+          session,
+        } as SaveEnvelope
+      }
       return envelope as SaveEnvelope
     } catch {
       return null
@@ -118,6 +140,7 @@ export class SaveManager {
   remove(slot: SaveSlotId): void {
     try {
       this.storage.removeItem(this.key(slot))
+      this.storage.removeItem(this.legacyKey(slot))
     } catch {
       // UI will simply continue showing the slot if removal is unavailable.
     }
@@ -133,11 +156,15 @@ export class SaveManager {
     this.store.reset()
     this.suspended = false
     const state = this.store.state
-    this.previousTransitionKey = ["", state.chapter, state.location, ""].join("|")
+    this.previousTransitionKey = ["", state.chapter, state.location, "", state.difficulty].join("|")
   }
 
   private key(slot: SaveSlotId): string {
     return `${this.prefix}${slot}`
+  }
+
+  private legacyKey(slot: SaveSlotId): string {
+    return `${this.legacyPrefix}${slot}`
   }
 }
 

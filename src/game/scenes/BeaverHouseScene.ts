@@ -2,6 +2,7 @@ import Phaser from "phaser"
 import { updateGameStatus } from "../../accessibility"
 import { GADGETS } from "../../domain/gadgets"
 import { BEAVER_ROOM_ORDER, gameStore } from "../../domain/GameStore"
+import { scaledTrapDamage } from "../../domain/difficulty"
 import type { BeaverRoomId, GadgetId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { COLORS, FONT } from "../ui"
@@ -328,11 +329,12 @@ export class BeaverHouseScene extends BaseWorldScene {
       EventBus.emit(GameEvents.showMessage, "Импульсный щит заблокировал ловушку!", 1800)
       return
     }
-    const result = gameStore.takeDamage(damage)
+    const scaledDamage = scaledTrapDamage(damage, gameStore.state.difficulty)
+    const result = gameStore.takeDamage(scaledDamage)
     this.cameras.main.shake(180, 0.009)
     this.player.setTint(0xff8b72)
     this.time.delayedCall(180, () => this.player?.clearTint())
-    EventBus.emit(GameEvents.showMessage, `${message} −${damage} здоровья.`, 2400)
+    EventBus.emit(GameEvents.showMessage, `${message} −${scaledDamage} здоровья.`, 2400)
     if (resetRoom || result.knockedOut) this.resetCurrentRoom()
   }
 

@@ -1,24 +1,28 @@
 # Forest Detectives: The Mystery of the Forest Parcel
 
-A family-friendly detective adventure for players aged 7–12. Choose one of five forest heroes, solve the mystery of a missing parcel, help the residents of a growing woodland village, and explore dangerous regions filled with animal and insect robots.
+A family-friendly detective adventure for players aged 7–12. Choose one of five forest heroes, solve the mystery of a missing parcel, help the residents of a growing woodland village, and explore dangerous regions filled with animal, insect, and bird robots.
 
 The game combines story quests, exploration, light action combat, puzzles, gathering, crafting, and local save slots. Progress can be approached at a comfortable pace, and most village activities are optional.
 
 ## Game Features
 
 - **Five playable detectives.** Play as Wolf Cub, Fox Cub, Rabbit, Watermelon, or Sheepwolf. Each hero has different attributes, a signature tool, and a personal home challenge.
-- **A two-chapter adventure.** Investigate the missing parcel in the opening case, then travel to the Forest Village and take on several quests in parallel.
+- **A chapter-based adventure.** Investigate the missing parcel, help the Forest Village, cross two mountain regions, defeat Armor Shell, and begin a snowy third chapter.
 - **A large connected world.** Explore the Forest Village, Wild Forest, Aunt Melon's Farm, Forest Mine, Mountain Hollow, Uncle Mole's Shop, five hero homes, and Beaver's trap-filled house.
 - **Village quests and resident errands.** Recover lost letters, collect robot parts, defeat forest machines, repair the village, water flowerbeds, deliver baked goods, light lamps, and help residents in the western district.
 - **Melee and ranged combat.** Use each hero's main weapon or switch to throwable tomatoes and cucumbers. Enemy health, rank, and combat status are displayed directly in the world.
 - **Four enemy ranks.** Weak, normal, and strong robots return after different delays, while bosses remain defeated. Every recurring robot can drop a new physical gear after each victory.
 - **Mountain encounters.** Fight robot beetles, wasps, and mantises before facing two bear guardians with different weapons and attack patterns.
-- **Gadgets with practical uses.** Buy a jetpack, magnetic glove, gas mask, and pulse shield from Uncle Mole. Gadgets open shortcuts and provide options in puzzles and combat.
+- **Bird Pass combat.** Face 18 feather-firing robot sparrows, owls, and hawks across a `4800×1600` mountain route. Metal feathers are physical projectiles that break against cover and can be blocked or reflected.
+- **A three-phase turtle boss.** Armor Shell alternates between feather barrages with an exposed core, invulnerable rolling attacks that must hit energy pylons, and rotating feather storms with marked falling volleys.
+- **Gadgets with practical uses.** Buy a jetpack, magnetic glove, gas mask, and pulse shield from Uncle Mole. The shield blocks feathers, while the glove creates a 1.5-second field that can reflect the first three captured projectiles.
 - **Resources and crafting.** Gather stones, sticks, ropes, and mechanical scrap. Craft a pickaxe and use it to mine iron and diamonds in a mine whose entrance and ore layout change with every new game.
 - **A safe farm area.** Visit Aunt Melon's Farm, meet its watermelon and melon residents, buy throwable vegetables, and explore without enemy encounters. Watermelon starts the adventure in the central garden bed.
 - **Beaver's challenge house.** Cross a collapsing floor, survive wall launchers and poison gas, solve a power-door mechanism, and use a jetpack to reach the final control panel. Room checkpoints preserve completed stages.
 - **Optional home challenges.** Visit the heroes' homes for lasso practice, mirror puzzles, evidence sorting, greenhouse controls, and batting training.
 - **Healing potions.** Every hero carries three potions. Each restores 33% of maximum health and recharges independently after 90 seconds.
+- **Four adjustable difficulties.** Switch between Walk, Story, Hard, and Impossible at any time from the pause screen. Hard preserves the original balance; lower or higher settings scale enemy, boss, and trap health or damage without changing rewards.
+- **A snowy third chapter.** Defeating Armor Shell ends chapter two. Returning to the village begins chapter three and adds camera-following snowfall to all outdoor locations while unfinished village activities remain available.
 - **Local saving and loading.** Use an autosave and three manual slots. Saves include quests, health, inventory, purchases, gathered resources, mine generation, enemy respawn timers, dropped loot, defeated bosses, and Beaver House checkpoints.
 
 ## Adventure Structure
@@ -36,7 +40,11 @@ The second chapter is built around four main assignments that can be accepted an
 3. Disable ten forest robots for the Owl Guardian.
 4. Enter Beaver's house and shut down its malfunctioning defense system.
 
-Turning in all four assignments unlocks the **Village Saved** finale. Resident errands and hero-home challenges are optional sources of gears, keepsakes, and additional conversations.
+Turning in all four assignments unlocks the **Village Saved** milestone. It does not end the chapter: the main route continues through Mountain Hollow and Bird Pass. Resident errands and hero-home challenges remain optional sources of gears, keepsakes, and additional conversations.
+
+### Bird Pass and Chapter Three
+
+Defeating both bear guardians opens the eastern gate to Bird Pass. The pass has its own cumulative victory counter and recurring gear drops. At the eastern arena, defeat the three-phase robot turtle Armor Shell to complete chapter two. The reward includes eight gears and the Bird Pass Badge. The hero may stay to explore or return directly to the village, where chapter three begins with snow across every outdoor region.
 
 ## Locations
 
@@ -48,22 +56,23 @@ Turning in all four assignments unlocks the **Village Saved** finale. Resident e
 | Aunt Melon's Farm | A peaceful farm, vegetable shop, resident dialogues, and Watermelon's home |
 | Forest Mine | Eight iron deposits and three diamond deposits, available after crafting a pickaxe |
 | Mountain Hollow | A `4800×1600` mountain route with robot insects and a two-guardian arena |
+| Bird Pass | A `4800×1600` windy mountain route with projectile-firing robot birds and a three-phase turtle boss |
 | Uncle Mole's Shop | Gadget purchasing and equipment management |
 | Beaver's House | Five connected trap and puzzle rooms with checkpoints |
 | Hero Homes | Five single-screen locations with character-specific mini-challenges |
 
-Wild Forest and Mountain Hollow use road and arena boundaries. Trees, cliffs, dense vegetation, rock formations, buildings, NPCs, and enemy bodies are solid obstacles rather than walk-through scenery.
+Wild Forest, Mountain Hollow, and Bird Pass use road and arena boundaries. Trees, cliffs, dense vegetation, rock formations, buildings, NPCs, and enemy bodies are solid obstacles rather than walk-through scenery.
 
 ## Enemies and Respawning
 
 | Rank | Examples | Respawn Time |
 |---|---|---:|
 | Weak | Robot hares | 30 seconds |
-| Normal | Robot wolves, beetles, and wasps | 60 seconds |
-| Strong | Robot boars and mantises | 90 seconds |
-| Boss | Reinforced boar and bear guardians | No respawn |
+| Normal | Robot wolves, beetles, wasps, and sparrows | 60 seconds |
+| Strong | Robot boars, mantises, owls, and hawks | 90 seconds |
+| Boss | Reinforced boar, bear guardians, and Armor Shell | No respawn |
 
-Forest quest progress uses a cumulative victory counter, so robots defeated after respawning continue to count. Mountain enemies have a separate counter and do not affect the Owl or Beaver assignments. Each non-boss victory leaves a location-specific gear drop that can be collected with `E`.
+Forest quest progress uses a cumulative victory counter, so robots defeated after respawning continue to count. Mountain Hollow and Bird Pass each have separate counters and do not affect the Owl or Beaver assignments. Each non-boss victory leaves a location-specific gear drop that can be collected with `E`.
 
 ## Equipment and Economy
 
@@ -72,7 +81,7 @@ Gears are earned from robots, quests, errands, hidden scrap, and home challenges
 | Gadget | Price | Use with `Q` |
 |---|---:|---|
 | Jetpack | 12 gears | Automatically crosses a marked chasm from its launch pad |
-| Magnetic Glove | 8 gears | Pulls marked mechanisms within range |
+| Magnetic Glove | 8 gears | Pulls mechanisms; on Bird Pass it captures feathers for 1.5 seconds and reflects up to three |
 | Gas Mask | 8 gears | Protects from gas for 8 seconds; 12-second cooldown |
 | Pulse Shield | 10 gears | Blocks the next hit or volley for 2 seconds; 6-second cooldown |
 
@@ -90,7 +99,7 @@ Beaver also sells safe training versions of a collapsing floor kit and a falling
 - `Q` — use the equipped gadget.
 - `T` — use a healing potion.
 - `I` — open the journal, inventory, resources, rewards, gadgets, and saves.
-- `Esc` — close the current window.
+- `Esc` — close the current window; when no window is open, pause the world and choose a difficulty.
 
 Character dialogue appears along the bottom of the screen. Short instructions, combat warnings, and system notifications appear in a compact panel on the right.
 
@@ -116,6 +125,7 @@ Useful scene shortcuts for visual testing:
 ?scene=forest-village
 ?scene=wild-forest
 ?scene=mountain-hollow
+?scene=bird-pass
 ?scene=forest-mine
 ?scene=melon-farm
 ?scene=mole-shop

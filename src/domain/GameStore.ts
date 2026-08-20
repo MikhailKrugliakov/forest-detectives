@@ -6,6 +6,8 @@ import { MINE_ENTRANCES, PICKAXE_ITEM, PICKAXE_RECIPE, SCRAP_GEAR_REWARD } from 
 import { getCharacter } from "./characters"
 import { ENEMIES, QUEST_IDS, QUESTS, questProgress } from "./quests"
 import { guardiansDefeated, MOUNTAIN_ENEMIES, MOUNTAIN_REWARD } from "./mountain"
+import { BIRD_PASS_ENEMIES, BIRD_PASS_REWARD, BIRD_PASS_TURTLE_ID } from "./birdPass"
+import { DIFFICULTY_IDS } from "./difficulty"
 import {
   activePotionCooldowns,
   HEALING_POTION_CAPACITY,
@@ -26,6 +28,7 @@ import type {
   BuildingMaterialId,
   CharacterId,
   ClueId,
+  DifficultyId,
   ErrandId,
   GadgetId,
   GameSession,
@@ -40,12 +43,13 @@ import type {
   WeaponId,
 } from "./types"
 
-const ALL_ENEMIES = [...ENEMIES, ...MOUNTAIN_ENEMIES] as const
+const ALL_ENEMIES = [...ENEMIES, ...MOUNTAIN_ENEMIES, ...BIRD_PASS_ENEMIES] as const
 const LOCATION_IDS = new Set<LocationId>([
   "forest-clearing",
   "forest-village",
   "wild-forest",
   "mountain-hollow",
+  "bird-pass",
   "forest-mine",
   "melon-farm",
   "mole-shop",
@@ -91,7 +95,7 @@ export class GameStore {
       !["wolf", "fox", "rabbit", "watermelon", "sheepwolf"].includes(data.characterId) ||
       !data.location ||
       !LOCATION_IDS.has(data.location) ||
-      (data.chapter !== 1 && data.chapter !== 2) ||
+      (data.chapter !== 1 && data.chapter !== 2 && data.chapter !== 3) ||
       !Array.isArray(data.inventory) ||
       !Array.isArray(data.defeatedEnemies) ||
       !Array.isArray(data.enemyGearDrops) ||
@@ -103,6 +107,11 @@ export class GameStore {
       const clone = structuredClone(data) as SerializedGameSession
       const { characterId, ...session } = clone
       const now = Date.now()
+      if (!session.difficulty || !DIFFICULTY_IDS.includes(session.difficulty)) session.difficulty = "hard"
+      session.birdPassEnemyDefeats ??= 0
+      session.birdPassCleared ??= session.defeatedEnemies.includes(BIRD_PASS_TURTLE_ID)
+      session.birdPassRewardClaimed ??= session.birdPassCleared
+      session.chapterTwoCompleted ??= session.birdPassCleared
       for (const [id, at] of Object.entries(session.enemyRespawnAt ?? {})) {
         if (!Number.isFinite(at) || at <= now) delete session.enemyRespawnAt[id]
       }
@@ -182,6 +191,13 @@ export class GameStore {
     this.notify()
   }
 
+  setDifficulty(difficulty: DifficultyId): boolean {
+    if (!DIFFICULTY_IDS.includes(difficulty) || this.session.difficulty === difficulty) return false
+    this.session.difficulty = difficulty
+    this.notify()
+    return true
+  }
+
   setLocation(location: LocationId, entryFrom?: LocationId | null): void {
     this.requireCharacter()
     if (entryFrom !== undefined) this.session.entryFrom = entryFrom
@@ -235,20 +251,24 @@ export class GameStore {
     this.session.enemyDefeatCounts[id] = defeatCount
     this.session.totalEnemyDefeats += 1
     if (definition.location === "wild-forest") this.session.wildForestEnemyDefeats += 1
-    else this.session.mountainEnemyDefeats += 1
-    this.session.enemyGearDrops.push({
-      id: `${id}:${defeatCount}`,
-      enemyId: id,
-      x: x ?? definition.x,
-      y: y ?? definition.y,
-      containsPart: definition.location === "wild-forest",
-      location: definition.location,
-      collected: false,
-    })
+    else if (definition.location === "mountain-hollow") this.session.mountainEnemyDefeats += 1
+    else this.session.birdPassEnemyDefeats += 1
+    if (definition.id !== BIRD_PASS_TURTLE_ID) {
+      this.session.enemyGearDrops.push({
+        id: `${id}:${defeatCount}`,
+        enemyId: id,
+        x: x ?? definition.x,
+        y: y ?? definition.y,
+        containsPart: definition.location === "wild-forest",
+        location: definition.location,
+        collected: false,
+      })
+    }
     this.updateQuestReadiness("robot-sweep")
     if (definition.location === "mountain-hollow" && guardiansDefeated(this.session.defeatedEnemies)) {
       this.completeMountainInternal()
     }
+    if (definition.id === BIRD_PASS_TURTLE_ID) this.completeBirdPassInternal()
     this.notify()
     return firstDefeat
   }
@@ -536,6 +556,24 @@ export class GameStore {
     return this.session.defeatedEnemies.includes("boar-3")
   }
 
+  completeBirdPass(): boolean {
+    if (!this.session.defeatedEnemies.includes(BIRD_PASS_TURTLE_ID) || this.session.birdPassCleared) return false
+    this.completeBirdPassInternal()
+    this.notify()
+    return true
+  }
+
+  beginChapterThree(): boolean {
+    if (!this.session.birdPassCleared || this.session.chapter === 3) return false
+    this.session.entryFrom = "bird-pass"
+    this.session.chapter = 3
+    this.session.location = "forest-village"
+    this.session.health = this.session.maxHealth
+    this.session.stamina = this.session.maxStamina
+    this.notify()
+    return true
+  }
+
   subscribe(listener: (session: Readonly<GameSession>) => void): () => void {
     this.listeners.add(listener)
     listener(this.session)
@@ -579,6 +617,18 @@ export class GameStore {
     }
   }
 
+  private completeBirdPassInternal(): void {
+    this.session.birdPassCleared = true
+    this.session.chapterTwoCompleted = true
+    this.session.health = this.session.maxHealth
+    if (this.session.birdPassRewardClaimed) return
+    this.session.birdPassRewardClaimed = true
+    this.awardGearsInternal("boss:turtle-guardian", BIRD_PASS_REWARD.gears)
+    if (!this.session.inventory.some(({ id }) => id === BIRD_PASS_REWARD.item.id)) {
+      this.session.inventory.push({ ...BIRD_PASS_REWARD.item })
+    }
+  }
+
   private emptyQuests(): GameSession["quests"] {
     return {
       "lost-letters": { status: "available" },
@@ -605,6 +655,7 @@ export class GameStore {
       character: null,
       inventory: [],
       chapter: 1,
+      difficulty: "hard",
       location: "forest-clearing",
       entryFrom: null,
       stamina: 0,
@@ -619,6 +670,7 @@ export class GameStore {
       totalEnemyDefeats: 0,
       wildForestEnemyDefeats: 0,
       mountainEnemyDefeats: 0,
+      birdPassEnemyDefeats: 0,
       enemyDefeatCounts: {},
       enemyGearDrops: [],
       enemyRespawnAt: {},
@@ -641,6 +693,9 @@ export class GameStore {
       villageSaved: false,
       mountainCleared: false,
       mountainRewardClaimed: false,
+      birdPassCleared: false,
+      birdPassRewardClaimed: false,
+      chapterTwoCompleted: false,
     }
   }
 }

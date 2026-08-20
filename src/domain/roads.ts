@@ -76,6 +76,32 @@ export const MOUNTAIN_ROADS: RoadNetwork = {
   ],
 }
 
+const birdPassMain = route([
+  { x: 140, y: 800 }, { x: 430, y: 790 }, { x: 760, y: 850 }, { x: 1080, y: 760 },
+  { x: 1420, y: 700 }, { x: 1770, y: 790 }, { x: 2130, y: 720 }, { x: 2480, y: 800 },
+  { x: 2820, y: 730 }, { x: 3170, y: 810 }, { x: 3500, y: 720 }, { x: 3860, y: 790 },
+  { x: 4210, y: 800 }, { x: 4660, y: 800 },
+], 130)
+
+export const BIRD_PASS_ROADS: RoadNetwork = {
+  segments: [
+    ...birdPassMain,
+    ...route([{ x: 760, y: 850 }, { x: 830, y: 1120 }, { x: 1100, y: 1320 }, { x: 1430, y: 1190 }, { x: 1770, y: 790 }], 115),
+    ...route([{ x: 1080, y: 760 }, { x: 1160, y: 480 }, { x: 1430, y: 300 }, { x: 1770, y: 790 }], 115),
+    ...route([{ x: 2130, y: 720 }, { x: 2280, y: 1050 }, { x: 2650, y: 1180 }, { x: 2820, y: 730 }], 115),
+    ...route([{ x: 2480, y: 800 }, { x: 2600, y: 470 }, { x: 2940, y: 320 }, { x: 3170, y: 810 }], 115),
+    ...route([{ x: 3170, y: 810 }, { x: 3370, y: 1110 }, { x: 3720, y: 1190 }, { x: 3860, y: 790 }], 115),
+    ...route([{ x: 3500, y: 720 }, { x: 3660, y: 430 }, { x: 3970, y: 360 }, { x: 4210, y: 800 }], 115),
+  ],
+  zones: [
+    { x: 650, y: 810, radius: 210 },
+    { x: 1650, y: 760, radius: 210 },
+    { x: 2700, y: 770, radius: 230 },
+    { x: 3650, y: 780, radius: 240 },
+    { x: 4460, y: 800, radius: 400 },
+  ],
+}
+
 export function projectToRoad(network: RoadNetwork, x: number, y: number): RoadProjection {
   let best: RoadProjection | null = null
   const consider = (centerX: number, centerY: number, halfWidth: number): void => {

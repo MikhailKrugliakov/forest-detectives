@@ -21,11 +21,11 @@ export const GADGETS: Record<GadgetId, GadgetDefinition> = {
   "magnetic-glove": {
     id: "magnetic-glove",
     name: "Магнитная перчатка",
-    description: "Притягивает отмеченные металлические механизмы на расстоянии.",
+    description: "Притягивает механизмы и на 1,5 секунды перехватывает металлические перья.",
     price: 8,
     icon: "🧲",
     assetKey: "gadget-magnetic-glove",
-    durationMs: 500,
+    durationMs: 1500,
     cooldownMs: 2500,
   },
   "gas-mask": {

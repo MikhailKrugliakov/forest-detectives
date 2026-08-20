@@ -92,7 +92,7 @@ export class ForestVillageScene extends BaseWorldScene {
       this.scene.start("character-select")
       return
     }
-    if (gameStore.state.chapter !== 2) gameStore.beginVillageChapter()
+    if (gameStore.state.chapter === 1) gameStore.beginVillageChapter()
     else gameStore.setLocation("forest-village")
 
     this.objects = []
@@ -128,7 +128,12 @@ export class ForestVillageScene extends BaseWorldScene {
     }).setOrigin(0.5).setDepth(820)
     // Accessibility reports the location as ready only after controls, portals,
     // and the debug/test bridge have been attached by setupWorld().
-    updateGameStatus("forest-village", `Расширенная деревня. Герой: ${character.name}.`)
+    updateGameStatus(
+      gameStore.state.chapter === 3 ? "chapter-three" : "forest-village",
+      gameStore.state.chapter === 3
+        ? `Глава 3. В расширенной деревне идёт снег. Герой: ${character.name}.`
+        : `Расширенная деревня. Герой: ${character.name}.`,
+    )
     this.cameras.main.fadeIn(300, 23, 63, 56)
 
     if (!this.scene.isActive("ui")) this.scene.launch("ui")

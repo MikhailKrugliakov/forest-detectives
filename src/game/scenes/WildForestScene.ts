@@ -8,7 +8,8 @@ import { PRODUCE } from "../../domain/produce"
 import { MINE_ENTRANCES, RESOURCES } from "../../domain/resources"
 import { WILD_MOUNTAIN_PORTAL } from "../../domain/mountain"
 import { WILD_FOREST_ROADS } from "../../domain/roads"
-import type { EnemyDefinition, ProduceId } from "../../domain/types"
+import { scaledEnemyHealth } from "../../domain/difficulty"
+import type { DifficultyId, EnemyDefinition, ProduceId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { CombatController } from "../CombatController"
 import { RoadCollisionController } from "../RoadCollisionController"
@@ -20,6 +21,7 @@ interface RuntimeEnemy {
   definition: EnemyDefinition
   sprite: Phaser.Physics.Arcade.Image
   hp: number
+  maxHp: number
   homeX: number
   homeY: number
   patrolAngle: number
@@ -59,6 +61,7 @@ export class WildForestScene extends BaseWorldScene {
   private shieldLastUsed = -10000
   private obstacles!: Phaser.Physics.Arcade.StaticGroup
   private enemyPlayerCollisions = 0
+  private lastDifficulty: DifficultyId = "hard"
 
   constructor() {
     super("wild-forest")
@@ -71,6 +74,7 @@ export class WildForestScene extends BaseWorldScene {
       return
     }
     this.resetRuntimeState()
+    this.lastDifficulty = gameStore.state.difficulty
     gameStore.setLocation("wild-forest")
     this.cameras.main.setBackgroundColor("#173532")
     this.add.image(1200, 800, "wild-forest-bg").setDisplaySize(2400, 1600).setDepth(0)
@@ -143,6 +147,8 @@ export class WildForestScene extends BaseWorldScene {
     this.updateWorldInput(stableDelta)
     if (this.modalOpen) return
 
+    this.syncDifficulty()
+
     this.updateEnemies(time, stableDelta)
     this.updateNearestPickup()
     if (this.gadgetPressed()) this.useGadget(time)
@@ -204,10 +210,12 @@ export class WildForestScene extends BaseWorldScene {
     healthBack.setDepth(2000)
     healthFill.setDepth(2001)
     rankText.setDepth(2002)
+    const maxHp = scaledEnemyHealth(definition, gameStore.state.difficulty)
     this.enemies.push({
       definition,
       sprite,
-      hp: definition.hp,
+      hp: maxHp,
+      maxHp,
       homeX: sprite.x,
       homeY: sprite.y,
       patrolAngle: index * 1.47,
@@ -224,6 +232,13 @@ export class WildForestScene extends BaseWorldScene {
 
   private scheduleRespawn(definition: EnemyDefinition, index: number, delay: number): void {
     this.combat.scheduleRespawn(this, delay, () => this.spawnEnemy(definition, index))
+  }
+
+  private syncDifficulty(): void {
+    const difficulty = gameStore.state.difficulty
+    if (difficulty === this.lastDifficulty) return
+    this.combat.rescaleEnemies(this.enemies, this.lastDifficulty, difficulty)
+    this.lastDifficulty = difficulty
   }
 
   private createPickups(): void {

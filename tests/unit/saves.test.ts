@@ -92,4 +92,64 @@ describe("сохранение игры", () => {
     saves.load("slot-1")
     expect(store.state.enemyRespawnAt["beetle-1"]).toBeUndefined()
   })
+
+  it("сохраняет сложность, Птичий перевал и третью главу", () => {
+    const storage = createStorage()
+    const store = new GameStore()
+    const saves = new SaveManager(store, storage)
+    store.selectCharacter("sheepwolf")
+    store.beginVillageChapter()
+    store.setDifficulty("impossible")
+    store.defeatEnemy("sparrow-1")
+    store.defeatEnemy("turtle-guardian")
+    store.beginChapterThree()
+    expect(saves.save("slot-1").ok).toBe(true)
+
+    store.reset()
+    expect(saves.load("slot-1").ok).toBe(true)
+    expect(store.state.difficulty).toBe("impossible")
+    expect(store.state.chapter).toBe(3)
+    expect(store.state.birdPassEnemyDefeats).toBe(2)
+    expect(store.state.birdPassCleared).toBe(true)
+    expect(store.state.chapterTwoCompleted).toBe(true)
+  })
+
+  it("мигрирует сохранение версии 1 с уровнем Сложный и закрытым перевалом", () => {
+    const storage = createStorage()
+    const sourceStore = new GameStore()
+    const sourceSaves = new SaveManager(sourceStore, storage)
+    sourceStore.selectCharacter("wolf")
+    sourceStore.beginVillageChapter()
+    sourceSaves.save("slot-2")
+    const current = JSON.parse(storage.values.get("forest-detectives:save:v2:slot-2")!)
+    current.version = 1
+    delete current.summary.difficulty
+    delete current.summary.birdPassCleared
+    delete current.session.difficulty
+    delete current.session.birdPassEnemyDefeats
+    delete current.session.birdPassCleared
+    delete current.session.birdPassRewardClaimed
+    delete current.session.chapterTwoCompleted
+    storage.values.delete("forest-detectives:save:v2:slot-2")
+    storage.values.set("forest-detectives:save:v1:slot-2", JSON.stringify(current))
+
+    const restoredStore = new GameStore()
+    const restoredSaves = new SaveManager(restoredStore, storage)
+    expect(restoredSaves.load("slot-2").ok).toBe(true)
+    expect(restoredStore.state.difficulty).toBe("hard")
+    expect(restoredStore.state.birdPassEnemyDefeats).toBe(0)
+    expect(restoredStore.state.birdPassCleared).toBe(false)
+    expect(restoredStore.state.chapterTwoCompleted).toBe(false)
+  })
+
+  it("немедленно обновляет автосейв после смены сложности", () => {
+    const storage = createStorage()
+    const store = new GameStore()
+    const saves = new SaveManager(store, storage)
+    saves.bindAutosave()
+    store.selectCharacter("rabbit")
+    expect(saves.read("auto")?.summary.difficulty).toBe("hard")
+    store.setDifficulty("story")
+    expect(saves.read("auto")?.summary.difficulty).toBe("story")
+  })
 })

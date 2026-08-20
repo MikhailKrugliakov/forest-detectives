@@ -1,0 +1,83 @@
+{
+  "compressionlevel": -1,
+  "height": 40,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "image": "../world/bird-pass-west.png",
+      "name": "background",
+      "offsetx": 0,
+      "offsety": 0,
+      "opacity": 1,
+      "type": "imagelayer",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 2,
+      "name": "collisions",
+      "objects": [
+        { "height": 60, "id": 1, "name": "north-edge", "width": 4800, "x": 0, "y": 0 },
+        { "height": 60, "id": 2, "name": "south-edge", "width": 4800, "x": 0, "y": 1540 },
+        { "height": 650, "id": 3, "name": "west-north", "width": 60, "x": 0, "y": 0 },
+        { "height": 650, "id": 4, "name": "west-south", "width": 60, "x": 0, "y": 950 },
+        { "height": 1600, "id": 5, "name": "east-edge", "width": 60, "x": 4740, "y": 0 },
+        { "height": 350, "id": 6, "name": "cliff-a-north", "width": 380, "x": 450, "y": 60 },
+        { "height": 360, "id": 7, "name": "cliff-a-south", "width": 420, "x": 520, "y": 1180 },
+        { "height": 330, "id": 8, "name": "cliff-b-north", "width": 420, "x": 1260, "y": 60 },
+        { "height": 300, "id": 9, "name": "cliff-b-south", "width": 430, "x": 1370, "y": 1240 },
+        { "height": 360, "id": 10, "name": "wind-rock-north", "width": 430, "x": 2080, "y": 60 },
+        { "height": 330, "id": 11, "name": "wind-rock-south", "width": 440, "x": 2180, "y": 1210 },
+        { "height": 310, "id": 12, "name": "spire-north", "width": 420, "x": 2910, "y": 60 },
+        { "height": 320, "id": 13, "name": "spire-south", "width": 420, "x": 3020, "y": 1220 },
+        { "height": 280, "id": 14, "name": "arena-north", "width": 780, "x": 4020, "y": 60 },
+        { "height": 280, "id": 15, "name": "arena-south", "width": 780, "x": 4020, "y": 1260 },
+        { "height": 160, "id": 16, "name": "rock-cover-1", "width": 120, "x": 1980, "y": 640 },
+        { "height": 150, "id": 17, "name": "rock-cover-2", "width": 130, "x": 2730, "y": 830 },
+        { "height": 160, "id": 18, "name": "rock-cover-3", "width": 120, "x": 3610, "y": 610 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 3,
+      "name": "world-objects",
+      "objects": [
+        { "id": 20, "name": "mountain-hollow", "point": true, "type": "portal", "x": 150, "y": 800 },
+        { "id": 21, "name": "bird-stone-1", "point": true, "type": "resource-stone", "x": 650, "y": 810 },
+        { "id": 22, "name": "bird-stick-1", "point": true, "type": "resource-stick", "x": 1100, "y": 900 },
+        { "id": 23, "name": "bird-rope-1", "point": true, "type": "resource-rope", "x": 1660, "y": 760 },
+        { "id": 24, "name": "bird-scrap-1", "point": true, "type": "resource-scrap", "x": 2230, "y": 760 },
+        { "id": 25, "name": "bird-stone-2", "point": true, "type": "resource-stone", "x": 2780, "y": 760 },
+        { "id": 26, "name": "bird-rope-2", "point": true, "type": "resource-rope", "x": 3370, "y": 880 },
+        { "id": 27, "name": "bird-scrap-2", "point": true, "type": "resource-scrap", "x": 3870, "y": 780 },
+        { "id": 28, "name": "pylon-west", "point": true, "type": "energy-pylon", "x": 4250, "y": 560 },
+        { "id": 29, "name": "pylon-east", "point": true, "type": "energy-pylon", "x": 4620, "y": 560 },
+        { "id": 30, "name": "pylon-south", "point": true, "type": "energy-pylon", "x": 4435, "y": 1050 }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 4,
+  "nextobjectid": 31,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.11.0",
+  "tileheight": 40,
+  "tilesets": [],
+  "tilewidth": 40,
+  "type": "map",
+  "version": "1.10",
+  "width": 120
+}

@@ -18,4 +18,6 @@ export const GameEvents = {
   openProduceShop: "open-produce-shop",
   chapterComplete: "chapter-complete",
   mountainComplete: "mountain-complete",
+  birdPassComplete: "bird-pass-complete",
+  togglePause: "toggle-pause",
 } as const

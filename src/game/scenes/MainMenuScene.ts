@@ -62,7 +62,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private locationLabel(location: string): string {
-    return location === "mountain-hollow" ? "Горная Лощина" : location === "wild-forest" ? "Дикий лес" : location === "forest-village" ? "Деревня" : "Приключение"
+    return location === "bird-pass" ? "Птичий перевал" : location === "mountain-hollow" ? "Горная Лощина" : location === "wild-forest" ? "Дикий лес" : location === "forest-village" ? "Деревня" : "Приключение"
   }
 
   private updateDiagnostics(): void {

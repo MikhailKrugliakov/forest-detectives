@@ -10,6 +10,7 @@ export const WORLD_SCENES = [
   "forest-village",
   "wild-forest",
   "mountain-hollow",
+  "bird-pass",
   "forest-mine",
   "melon-farm",
   "mole-shop",

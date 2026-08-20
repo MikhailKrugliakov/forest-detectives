@@ -5,6 +5,7 @@ import { PRODUCE, weaponLabel } from "../../domain/produce"
 import type { CharacterDefinition, LocationId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { COLORS } from "../ui"
+import { SnowfallController } from "../SnowfallController"
 
 type MovementKeys = Record<
   "W" | "A" | "S" | "D" | "SHIFT" | "SPACE" | "E" | "Q" | "R" | "T" | "I" | "ESC",
@@ -29,6 +30,7 @@ export abstract class BaseWorldScene extends Phaser.Scene {
   private baseScaleX = 1
   private baseScaleY = 1
   private nextDiagnosticAt = 0
+  private snowfall: SnowfallController | null = null
 
   protected setupWorld(
     character: CharacterDefinition,
@@ -74,10 +76,18 @@ export abstract class BaseWorldScene extends Phaser.Scene {
 
     EventBus.on("modal-state", this.handleModalState, this)
     EventBus.on("debug-teleport", this.handleDebugTeleport, this)
+    this.snowfall?.destroy()
+    this.snowfall = SnowfallController.shouldRun(this.scene.key, gameStore.state.chapter)
+      ? new SnowfallController(this)
+      : null
+    const status = document.querySelector<HTMLElement>("#game-status")
+    if (status) status.dataset.snow = String(this.snowfall != null)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       EventBus.off("modal-state", this.handleModalState, this)
       EventBus.off("debug-teleport", this.handleDebugTeleport, this)
       EventBus.emit(GameEvents.promptChanged, "")
+      this.snowfall?.destroy()
+      this.snowfall = null
     })
   }
 
@@ -85,10 +95,6 @@ export abstract class BaseWorldScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.movementKeys.I)) {
       EventBus.emit(GameEvents.toggleInventory)
     }
-    if (Phaser.Input.Keyboard.JustDown(this.movementKeys.ESC)) {
-      EventBus.emit("close-modal")
-    }
-
     if (!movementEnabled || this.modalOpen) {
       this.player.setVelocity(0, 0)
       this.updateWalkAnimation(false, delta, 0)
@@ -97,7 +103,7 @@ export abstract class BaseWorldScene extends Phaser.Scene {
     }
 
     if (
-      gameStore.state.chapter === 2 &&
+      gameStore.state.chapter >= 2 &&
       Phaser.Input.Keyboard.JustDown(this.movementKeys.R)
     ) {
       const weapon = gameStore.cycleWeapon()
@@ -107,7 +113,7 @@ export abstract class BaseWorldScene extends Phaser.Scene {
     }
 
     if (
-      gameStore.state.chapter === 2 &&
+      gameStore.state.chapter >= 2 &&
       Phaser.Input.Keyboard.JustDown(this.movementKeys.T)
     ) {
       const result = gameStore.useHealingPotion()

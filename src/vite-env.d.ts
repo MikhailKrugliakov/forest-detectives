@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 import type { GameStore } from "./domain/GameStore"
-import type { BeaverRoomId, BuildingMaterialId, CharacterId, ClueId, ErrandId, GadgetId, LocationId, ProduceId, PuzzleAnswer, QuestId, ResourceId, SaveSlotId, WeaponId } from "./domain/types"
+import type { BeaverRoomId, BuildingMaterialId, CharacterId, ClueId, DifficultyId, ErrandId, GadgetId, LocationId, ProduceId, PuzzleAnswer, QuestId, ResourceId, SaveSlotId, WeaponId } from "./domain/types"
 
 declare global {
   interface Window {
@@ -11,6 +11,8 @@ declare global {
       collectClue: (id: ClueId) => boolean
       answer: (answer: PuzzleAnswer) => unknown
       beginVillage: () => void
+      beginChapterThree: () => boolean
+      setDifficulty: (id: DifficultyId) => boolean
       setLocation: (location: LocationId) => void
       acceptQuest: (id: QuestId) => boolean
       turnInQuest: (id: QuestId) => boolean
