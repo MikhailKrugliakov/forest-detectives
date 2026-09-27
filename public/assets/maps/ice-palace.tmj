@@ -1,0 +1,26 @@
+{
+  "compressionlevel": -1, "height": 40, "infinite": false,
+  "layers": [
+    { "id": 1, "image": "../world/ice-palace.jpg", "name": "background", "opacity": 1, "type": "imagelayer", "visible": true, "x": 0, "y": 0 },
+    { "draworder": "topdown", "id": 2, "name": "collisions", "objects": [
+      { "id": 1, "name": "north-wall", "x": 0, "y": 0, "width": 2400, "height": 155 },
+      { "id": 2, "name": "south-wall", "x": 0, "y": 1430, "width": 2400, "height": 170 },
+      { "id": 3, "name": "west-north", "x": 0, "y": 0, "width": 60, "height": 650 },
+      { "id": 4, "name": "west-south", "x": 0, "y": 950, "width": 60, "height": 650 },
+      { "id": 5, "name": "east-north", "x": 2340, "y": 0, "width": 60, "height": 650 },
+      { "id": 6, "name": "east-south", "x": 2340, "y": 950, "width": 60, "height": 650 },
+      { "id": 7, "name": "ice-table-west", "x": 450, "y": 235, "width": 310, "height": 185 },
+      { "id": 8, "name": "ice-bench-east", "x": 1660, "y": 1110, "width": 355, "height": 185 },
+      { "id": 9, "name": "ice-column", "x": 805, "y": 120, "width": 160, "height": 350 },
+      { "id": 12, "name": "north-west-furniture", "x": 0, "y": 155, "width": 1020, "height": 315 },
+      { "id": 13, "name": "north-east-furniture", "x": 1380, "y": 155, "width": 1020, "height": 315 },
+      { "id": 14, "name": "south-west-furniture", "x": 0, "y": 1000, "width": 1010, "height": 430 },
+      { "id": 15, "name": "south-east-furniture", "x": 1390, "y": 1000, "width": 1010, "height": 430 }
+    ], "opacity": 1, "type": "objectgroup", "visible": true, "x": 0, "y": 0 },
+    { "draworder": "topdown", "id": 3, "name": "world-objects", "objects": [
+      { "id": 10, "name": "krok-city", "point": true, "type": "portal", "x": 150, "y": 800 },
+      { "id": 11, "name": "ice-throne", "point": true, "type": "portal", "x": 2250, "y": 800 }
+    ], "opacity": 1, "type": "objectgroup", "visible": true, "x": 0, "y": 0 }
+  ],
+  "nextlayerid": 4, "nextobjectid": 16, "orientation": "orthogonal", "renderorder": "right-down", "tiledversion": "1.11.0", "tileheight": 40, "tilesets": [], "tilewidth": 40, "type": "map", "version": "1.10", "width": 60
+}

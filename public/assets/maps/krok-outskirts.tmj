@@ -1,0 +1,17 @@
+{
+  "compressionlevel": -1, "height": 40, "infinite": false,
+  "layers": [
+    { "draworder": "topdown", "id": 1, "name": "collisions", "objects": [
+      { "id": 1, "name": "north-snowbanks", "x": 0, "y": 0, "width": 4800, "height": 490 },
+      { "id": 2, "name": "south-snowbanks", "x": 0, "y": 1130, "width": 4800, "height": 470 },
+      { "id": 3, "name": "fortress-north", "x": 4720, "y": 0, "width": 80, "height": 670 },
+      { "id": 4, "name": "fortress-south", "x": 4720, "y": 930, "width": 80, "height": 670 },
+      { "id": 7, "name": "guard-battlements", "x": 3770, "y": 490, "width": 950, "height": 130 }
+    ], "opacity": 1, "type": "objectgroup", "visible": true, "x": 0, "y": 0 },
+    { "draworder": "topdown", "id": 2, "name": "world-objects", "objects": [
+      { "id": 5, "name": "snow-city", "point": true, "type": "portal", "x": 150, "y": 800 },
+      { "id": 6, "name": "krok-city", "point": true, "type": "portal", "x": 4650, "y": 800 }
+    ], "opacity": 1, "type": "objectgroup", "visible": true, "x": 0, "y": 0 }
+  ],
+  "nextlayerid": 3, "nextobjectid": 7, "orientation": "orthogonal", "renderorder": "right-down", "tiledversion": "1.11.0", "tileheight": 40, "tilesets": [], "tilewidth": 40, "type": "map", "version": "1.10", "width": 120
+}

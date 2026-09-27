@@ -6,6 +6,7 @@ import { EventBus, GameEvents } from "../EventBus"
 import { FONT } from "../ui"
 import { addResourceNode, collectResourceNode, resourcePrompt, type RuntimeResourceNode } from "../WorldResources"
 import { BaseWorldScene } from "./BaseWorldScene"
+import { actorFor } from "../animation/AnimatedActor"
 
 const EXIT = { x: 165, y: 1390 }
 
@@ -124,6 +125,14 @@ export class ForestMineScene extends BaseWorldScene {
       EventBus.emit(GameEvents.showMessage, "⛏️ Сначала создай кирку: I → Ресурсы.", 2400)
       return
     }
+    const actor = actorFor(this.player)
+    if (actor?.currentAction === "mine" && actor.isPlaying) return
+    actor?.face(ore.x - this.player.x, ore.y - this.player.y)
+    actor?.play("mine", { duration: 600, impactAt: 220, onImpact: () => this.collectOre(ore) })
+  }
+
+  private collectOre(ore: RuntimeResourceNode): void {
+    if (!this.ores.includes(ore)) return
     const swing = this.add.text(this.player.x + 35, this.player.y - 30, "⛏️", {
       fontFamily: FONT,
       fontSize: "40px",

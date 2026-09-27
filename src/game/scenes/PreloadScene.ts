@@ -1,6 +1,7 @@
 import Phaser from "phaser"
 import { gameStore } from "../../domain/GameStore"
 import type { CharacterId } from "../../domain/types"
+import { KROK_SIEGE_ENEMIES } from "../../domain/krok"
 import { COLORS, FONT } from "../ui"
 
 export class PreloadScene extends Phaser.Scene {
@@ -58,13 +59,23 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("robot-owl", "assets/enemies/robot-owl.png")
     this.load.image("robot-hawk", "assets/enemies/robot-hawk.png")
     this.load.image("turtle-guardian", "assets/enemies/turtle-guardian.png")
-    this.load.image("forest-village-bg", "assets/world/forest-village-expanded.png")
-    this.load.image("forest-village-west-bg", "assets/world/forest-village-west.png")
+    this.load.image("snowball", "assets/enemies/snowball.png")
+    this.load.image("snowman", "assets/enemies/snowman.png")
+    this.load.image("robot-albatross", "assets/enemies/robot-albatross.png")
+    this.load.image("snow-golem", "assets/enemies/snow-golem.png")
+    this.load.image("ice-golem", "assets/enemies/ice-golem.png")
+    this.load.image("walrus", "assets/enemies/walrus.png")
+    this.load.image("forest-village-bg", "assets/world/forest-village-panorama-v2.jpg")
     this.load.image("wild-forest-bg", "assets/world/wild-forest.png")
     this.load.image("mountain-hollow-west-bg", "assets/world/mountain-hollow-west.png")
     this.load.image("mountain-hollow-east-bg", "assets/world/mountain-hollow-east.png")
     this.load.image("bird-pass-west-bg", "assets/world/bird-pass-west.png")
     this.load.image("bird-pass-east-bg", "assets/world/bird-pass-east.png")
+    this.load.image("snow-valley-bg", "assets/world/snow-valley-panorama-v2.jpg")
+    this.load.image("snow-city-west-bg", "assets/world/snow-city-west.jpg")
+    this.load.image("snow-city-east-bg", "assets/world/snow-city-east.jpg")
+    this.load.image("ice-palace-bg", "assets/world/ice-palace.jpg")
+    this.load.image("ice-throne-bg", "assets/interiors/ice-throne.jpg")
     this.load.image("forest-mine-bg", "assets/world/forest-mine.png")
     this.load.image("melon-farm-bg", "assets/world/melon-farm.png")
     this.load.image("mole-shop-bg", "assets/interiors/mole-shop.png")
@@ -74,6 +85,9 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("rabbit-home-bg", "assets/interiors/rabbit-home.png")
     this.load.image("watermelon-home-bg", "assets/interiors/watermelon-home.png")
     this.load.image("sheepwolf-home-bg", "assets/interiors/sheepwolf-home.png")
+    this.load.image("village-coastal-bg", "assets/ocean/village-coastal-panorama.png")
+    this.load.image("village-flood-bg", "assets/ocean/flood-panorama.png")
+    this.load.image("scuba", "assets/ocean/scuba.png")
     this.load.image("gadget-jetpack", "assets/gadgets/jetpack.png")
     this.load.image("gadget-magnetic-glove", "assets/gadgets/magnetic-glove.png")
     this.load.image("gadget-gas-mask", "assets/gadgets/gas-mask.png")
@@ -83,6 +97,10 @@ export class PreloadScene extends Phaser.Scene {
     this.load.tilemapTiledJSON("wild-forest-map", "assets/maps/wild-forest.tmj")
     this.load.tilemapTiledJSON("mountain-hollow-map", "assets/maps/mountain-hollow.tmj")
     this.load.tilemapTiledJSON("bird-pass-map", "assets/maps/bird-pass.tmj")
+    this.load.tilemapTiledJSON("snow-valley-map", "assets/maps/snow-valley.tmj")
+    this.load.tilemapTiledJSON("snow-city-map", "assets/maps/snow-city.tmj")
+    this.load.tilemapTiledJSON("ice-palace-map", "assets/maps/ice-palace.tmj")
+    this.load.tilemapTiledJSON("ice-throne-map", "assets/maps/ice-throne.tmj")
     this.load.tilemapTiledJSON("forest-mine-map", "assets/maps/forest-mine.tmj")
     this.load.tilemapTiledJSON("melon-farm-map", "assets/maps/melon-farm.tmj")
     this.load.tilemapTiledJSON("beaver-house-map", "assets/maps/beaver-house.tmj")
@@ -92,7 +110,11 @@ export class PreloadScene extends Phaser.Scene {
     const debugScene = import.meta.env.DEV
       ? new URLSearchParams(window.location.search).get("scene")
       : null
-    if (["forest-village", "wild-forest", "mountain-hollow", "bird-pass", "forest-mine", "melon-farm", "mole-shop", "beaver-house", "hero-home"].includes(debugScene ?? "")) {
+    if (debugScene === "animation-gallery") {
+      this.scene.start("animation-gallery")
+      return
+    }
+    if (["beach", "sea", "trench", "forest-village", "wild-forest", "mountain-hollow", "bird-pass", "snow-valley", "snow-city", "krok-outskirts", "krok-city", "ice-palace", "ice-throne", "forest-mine", "melon-farm", "mole-shop", "beaver-house", "hero-home"].includes(debugScene ?? "")) {
       const debugHero = new URLSearchParams(window.location.search).get("hero")
       const hero: CharacterId = ["wolf", "fox", "rabbit", "watermelon", "sheepwolf"].includes(debugHero ?? "")
         ? debugHero as CharacterId
@@ -112,6 +134,31 @@ export class PreloadScene extends Phaser.Scene {
         gameStore.defeatEnemy("guardian-axe")
         gameStore.defeatEnemy("guardian-flamethrower")
         gameStore.setLocation("bird-pass")
+      }
+      if (["snow-valley", "snow-city", "krok-outskirts", "krok-city", "ice-palace", "ice-throne"].includes(debugScene ?? "")) {
+        gameStore.defeatEnemy("turtle-guardian")
+        gameStore.beginChapterThree()
+        if (["krok-city", "ice-palace", "ice-throne"].includes(debugScene ?? "")) {
+          KROK_SIEGE_ENEMIES.forEach(({ id }) => gameStore.defeatEnemy(id))
+        }
+        if (["ice-palace", "ice-throne"].includes(debugScene ?? "")) gameStore.acceptPrinceQuest()
+        gameStore.setLocation(debugScene as "snow-valley" | "snow-city" | "krok-outskirts" | "krok-city" | "ice-palace" | "ice-throne")
+      }
+      if (["beach", "sea", "trench"].includes(debugScene ?? "")) {
+        gameStore.defeatEnemy("turtle-guardian")
+        gameStore.beginChapterThree()
+        gameStore.defeatEnemy("walrus-throne")
+        gameStore.setLocation("forest-village")
+        gameStore.beginOceanIntro()
+        gameStore.setLocation("beach")
+        gameStore.visitBeach()
+        if (debugScene !== "beach") {
+          gameStore.awardGears("debug-scuba", 40)
+          gameStore.setLocation("mole-shop")
+          gameStore.purchaseScuba()
+        }
+        if (debugScene === "trench") gameStore.defeatEnemy("tiger-shark")
+        gameStore.setLocation(debugScene as "beach" | "sea" | "trench")
       }
       if (debugScene === "beaver-house") {
         gameStore.acceptQuest("beaver-security")

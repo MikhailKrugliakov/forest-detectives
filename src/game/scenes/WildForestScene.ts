@@ -12,6 +12,7 @@ import { scaledEnemyHealth } from "../../domain/difficulty"
 import type { DifficultyId, EnemyDefinition, ProduceId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { CombatController } from "../CombatController"
+import { actorFor } from "../animation/AnimatedActor"
 import { RoadCollisionController } from "../RoadCollisionController"
 import { COLORS, FONT } from "../ui"
 import { addResourceNode, collectResourceNode, resourceIdFromObjectType, resourcePrompt, type RuntimeResourceNode } from "../WorldResources"
@@ -94,14 +95,20 @@ export class WildForestScene extends BaseWorldScene {
       character.id === "watermelon" ? 112 : 140,
     )
     this.roadCollision.track(this.player, true)
-    this.obstacles = this.loadMapCollisions("wild-forest-map")
+    this.obstacles = this.loadMapCollisions("wild-forest-map", WILD_FOREST_ROADS)
     this.createEnemies()
     this.createPickups()
     this.createSurfaceResources()
     this.createVillageExit()
     this.createMineEntrance()
     this.createMountainPass()
-    this.combat.arm(this.time.now)
+    if (import.meta.env.DEV) {
+      EventBus.on("debug-damage-enemy", this.handleDebugDamageEnemy, this)
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        EventBus.off("debug-damage-enemy", this.handleDebugDamageEnemy, this)
+      })
+    }
+    this.combat.arm(this.combat.now)
     updateGameStatus(
       "wild-forest",
       `Дикий лес. Всего обезврежено робозверей: ${gameStore.state.wildForestEnemyDefeats}.`,
@@ -140,11 +147,12 @@ export class WildForestScene extends BaseWorldScene {
 
   update(time: number, delta: number): void {
     if (!this.player?.body || this.returningToVillage) return
+    const stableDelta = Math.min(delta, 50)
+    this.updateWorldInput(stableDelta)
+    time = this.combat.advance(delta, this.modalOpen)
     const playerOnRoad = this.roadCollision.constrain(this.player)
     const status = document.querySelector<HTMLElement>("#game-status")
     if (status) status.dataset.playerOnRoad = String(playerOnRoad)
-    const stableDelta = Math.min(delta, 50)
-    this.updateWorldInput(stableDelta)
     if (this.modalOpen) return
 
     this.syncDifficulty()
@@ -190,6 +198,7 @@ export class WildForestScene extends BaseWorldScene {
     sprite.setCollideWorldBounds(true)
     this.roadCollision.track(sprite, true)
     this.combat.configureEnemyBody(sprite)
+    sprite.setName(definition.id)
     const healthBack = this.add.rectangle(sprite.x, sprite.y - 72, 72, 9, 0x281916, 0.9)
     const healthFill = this.add.rectangle(sprite.x - 35, sprite.y - 72, 70, 7, definition.rank === "boss" ? 0xb94cff : COLORS.coral, 1).setOrigin(0, 0.5)
     const rankColor = definition.rank === "weak"
@@ -317,9 +326,21 @@ export class WildForestScene extends BaseWorldScene {
 
   private updateEnemies(time: number, delta: number): void {
     const deltaSeconds = delta / 1000
+    const activeArea = Phaser.Geom.Rectangle.Inflate(Phaser.Geom.Rectangle.Clone(this.cameras.main.worldView), 320, 260)
     this.enemies.forEach((enemy) => {
       if (!enemy.sprite.active) return
+      if (!activeArea.contains(enemy.sprite.x, enemy.sprite.y)) {
+        enemy.sprite.setVelocity(0, 0)
+        return
+      }
       this.roadCollision.constrain(enemy.sprite)
+      if (this.combat.isEnemyRecoiling(enemy)) {
+        enemy.sprite.setDepth(enemy.sprite.y + 20)
+        enemy.healthFill.setPosition(enemy.sprite.x - 35, enemy.sprite.y - 72)
+        enemy.healthBack.setPosition(enemy.sprite.x, enemy.sprite.y - 72)
+        enemy.rankText.setPosition(enemy.sprite.x, enemy.sprite.y - 57)
+        return
+      }
       const playerDx = this.player.x - enemy.sprite.x
       const playerDy = this.player.y - enemy.sprite.y
       const distanceSquared = playerDx * playerDx + playerDy * playerDy
@@ -344,7 +365,7 @@ export class WildForestScene extends BaseWorldScene {
       const directionX = dx * inverseLength
       const directionY = dy * inverseLength
       enemy.sprite.setVelocity(directionX * speed, directionY * speed)
-      enemy.sprite.setFlipX(directionX < 0)
+      actorFor(enemy.sprite)?.face(directionX, directionY)
       enemy.sprite.setDepth(enemy.sprite.y + 20)
       enemy.healthFill.setPosition(enemy.sprite.x - 35, enemy.sprite.y - 72)
       enemy.healthBack.setPosition(enemy.sprite.x, enemy.sprite.y - 72)
@@ -354,7 +375,12 @@ export class WildForestScene extends BaseWorldScene {
         distanceSquared < 5184 &&
         this.combat.canDamagePlayer(time)
       ) {
-        this.damagePlayer(enemy, time)
+        // Contact damage was immediate before animation; begin at its impact pose.
+        actorFor(enemy.sprite)?.play("attack", { duration: 450, impactAt: 0, onImpact: () => {
+          if (enemy.sprite.active && !this.returningToVillage && Phaser.Math.Distance.Squared(this.player.x, this.player.y, enemy.sprite.x, enemy.sprite.y) < 5184) {
+            this.damagePlayer(enemy, this.combat.now)
+          }
+        } })
       }
     })
     const status = document.querySelector<HTMLElement>("#game-status")
@@ -406,17 +432,36 @@ export class WildForestScene extends BaseWorldScene {
     }
     this.shieldLastUsed = time
     this.shieldUntil = time + gadget.durationMs
+    actorFor(this.player)?.play("gadget", { duration: 350 })
     this.player.setTint(0x6cc7ff)
     this.time.delayedCall(gadget.durationMs, () => {
-      if (this.time.now >= this.shieldUntil) this.player?.clearTint()
+      if (this.combat.now >= this.shieldUntil) this.player?.clearTint()
     })
     EventBus.emit(GameEvents.showMessage, "Щит активен и заблокирует следующий удар.", 1700)
   }
 
   private attack(): void {
+    const weapon = gameStore.state.equippedWeapon
+    const direction = this.lastDirection.clone()
+    actorFor(this.player)?.face(direction.x, direction.y)
+    actorFor(this.player)?.play(weapon === "melee" ? "attack" : "throw", {
+      duration: 450,
+      impactAt: 120,
+      onImpact: () => this.resolveAttack(weapon, direction),
+    })
+  }
+
+  private resolveAttack(weapon: typeof gameStore.state.equippedWeapon, direction: Phaser.Math.Vector2): void {
     const character = gameStore.state.character
     if (!character) return
-    const weapon = gameStore.state.equippedWeapon
+    // Commit the captured facing only for hit selection; movement remains free.
+    const currentDirection = this.lastDirection.clone()
+    this.lastDirection.copy(direction)
+    this.resolveAttackImpact(weapon, character)
+    this.lastDirection.copy(currentDirection)
+  }
+
+  private resolveAttackImpact(weapon: typeof gameStore.state.equippedWeapon, character: NonNullable<typeof gameStore.state.character>): void {
     if (weapon !== "melee") {
       this.throwProduce(weapon)
       return
@@ -495,6 +540,11 @@ export class WildForestScene extends BaseWorldScene {
       target = enemy
     }
     return target
+  }
+
+  private handleDebugDamageEnemy(id: string, damage: number): void {
+    const enemy = this.enemies.find(({ definition }) => definition.id === id)
+    if (enemy && Number.isFinite(damage) && damage > 0) this.hitEnemy(enemy, damage, 0)
   }
 
   private hitEnemy(enemy: RuntimeEnemy, damage: number, knockback = 28): void {

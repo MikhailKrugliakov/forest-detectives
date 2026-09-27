@@ -136,7 +136,7 @@ describe("игровая сессия", () => {
     expect(store.state.ownedGadgets).toEqual([])
     expect(store.state.completedHomeChallenges).toEqual([])
     expect(store.state.ownedBuildingMaterials).toEqual([])
-    expect(store.state.produceAmmo).toEqual({ tomato: 0, cucumber: 0 })
+    expect(store.state.produceAmmo).toEqual({ tomato: 0, cucumber: 0, "dense-tomato": 0, "large-cucumber": 0 })
     expect(store.state.equippedWeapon).toBe("melee")
     expect(store.state.errands["mushroom-hunt"].status).toBe("available")
     expect(store.state.resources).toEqual({ stone: 0, stick: 0, rope: 0, scrap: 0, iron: 0, diamond: 0 })

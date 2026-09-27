@@ -121,7 +121,7 @@ describe("сохранение игры", () => {
     sourceStore.selectCharacter("wolf")
     sourceStore.beginVillageChapter()
     sourceSaves.save("slot-2")
-    const current = JSON.parse(storage.values.get("forest-detectives:save:v2:slot-2")!)
+    const current = JSON.parse(storage.values.get("forest-detectives:save:v5:slot-2")!)
     current.version = 1
     delete current.summary.difficulty
     delete current.summary.birdPassCleared
@@ -130,7 +130,7 @@ describe("сохранение игры", () => {
     delete current.session.birdPassCleared
     delete current.session.birdPassRewardClaimed
     delete current.session.chapterTwoCompleted
-    storage.values.delete("forest-detectives:save:v2:slot-2")
+    storage.values.delete("forest-detectives:save:v5:slot-2")
     storage.values.set("forest-detectives:save:v1:slot-2", JSON.stringify(current))
 
     const restoredStore = new GameStore()
@@ -140,6 +140,59 @@ describe("сохранение игры", () => {
     expect(restoredStore.state.birdPassEnemyDefeats).toBe(0)
     expect(restoredStore.state.birdPassCleared).toBe(false)
     expect(restoredStore.state.chapterTwoCompleted).toBe(false)
+    expect(restoredStore.state.snowValleyEnemyDefeats).toBe(0)
+    expect(restoredStore.state.walrusCleared).toBe(false)
+  })
+
+  it("мигрирует сохранение версии 2 и сохраняет зимний прогресс после нового сохранения", () => {
+    const storage = createStorage()
+    const store = new GameStore()
+    const saves = new SaveManager(store, storage)
+    store.selectCharacter("wolf")
+    store.beginVillageChapter()
+    store.defeatEnemy("turtle-guardian")
+    store.beginChapterThree()
+    saves.save("slot-1")
+    const legacy = JSON.parse(storage.values.get("forest-detectives:save:v5:slot-1")!)
+    legacy.version = 2
+    delete legacy.summary.walrusCleared
+    delete legacy.session.snowValleyEnemyDefeats
+    delete legacy.session.snowCityEnemyDefeats
+    delete legacy.session.icePalaceEnemyDefeats
+    delete legacy.session.walrusCleared
+    delete legacy.session.walrusRewardClaimed
+    storage.values.delete("forest-detectives:save:v5:slot-1")
+    storage.values.set("forest-detectives:save:v2:slot-1", JSON.stringify(legacy))
+
+    const restored = new GameStore()
+    const restoredSaves = new SaveManager(restored, storage)
+    expect(restoredSaves.load("slot-1").ok).toBe(true)
+    expect(restored.state.chapter).toBe(3)
+    expect(restored.state.walrusCleared).toBe(false)
+    expect(restoredSaves.read("slot-1")?.version).toBe(5)
+  })
+
+  it("сохраняет главу 4, победу над Моржом и таймеры зимних врагов", () => {
+    const storage = createStorage()
+    const store = new GameStore()
+    const saves = new SaveManager(store, storage)
+    store.selectCharacter("sheepwolf")
+    store.beginVillageChapter()
+    store.defeatEnemy("turtle-guardian")
+    store.beginChapterThree()
+    store.defeatEnemy("valley-13")
+    store.defeatEnemy("walrus-throne")
+    store.setLocation("ice-throne")
+    expect(saves.save("slot-3").ok).toBe(true)
+    const respawnAt = store.state.enemyRespawnAt["valley-13"]
+
+    store.reset()
+    expect(saves.load("slot-3").ok).toBe(true)
+    expect(store.state.chapter).toBe(4)
+    expect(store.state.walrusCleared).toBe(true)
+    expect(store.state.inventory.filter(({ id }) => id === "ice-palace-badge")).toHaveLength(1)
+    expect(store.state.enemyRespawnAt["valley-13"]).toBe(respawnAt)
+    expect(store.state.enemyGearDrops.at(-1)?.location).toBe("snow-valley")
   })
 
   it("немедленно обновляет автосейв после смены сложности", () => {

@@ -6,6 +6,7 @@ import { EventBus, GameEvents } from "../EventBus"
 import { FONT } from "../ui"
 import { addResourceNode, collectResourceNode, resourceIdFromObjectType, resourcePrompt, type RuntimeResourceNode } from "../WorldResources"
 import { BaseWorldScene } from "./BaseWorldScene"
+import { NpcController } from "../animation/NpcController"
 
 type FarmKind = "npc" | "hero" | "portal" | "resource"
 
@@ -61,6 +62,7 @@ export class MelonFarmScene extends BaseWorldScene {
   private objects: FarmObject[] = []
   private nearest: FarmObject | null = null
   private lastPrompt = ""
+  private residents!: NpcController
 
   constructor() {
     super("melon-farm")
@@ -73,6 +75,9 @@ export class MelonFarmScene extends BaseWorldScene {
       return
     }
     gameStore.setLocation("melon-farm")
+    this.objects = []
+    this.nearest = null
+    this.lastPrompt = ""
     this.cameras.main.setBackgroundColor("#8fb05b")
     this.add.image(1200, 800, "melon-farm-bg").setDisplaySize(2400, 1600).setDepth(0)
     const spawn = gameStore.state.entryFrom === "watermelon-home"
@@ -92,6 +97,7 @@ export class MelonFarmScene extends BaseWorldScene {
       character.id === "watermelon" ? 112 : 140,
     )
     this.loadMapCollisions("melon-farm-map")
+    this.residents = new NpcController(this, this.player, "melon-farm-map")
     this.createMapObjects()
     updateGameStatus(
       "melon-farm",
@@ -136,9 +142,11 @@ export class MelonFarmScene extends BaseWorldScene {
       return
     }
     if (this.nearest.id === "aunt-melon") {
+      this.residents.talk(this.nearest.id)
       EventBus.emit(GameEvents.openProduceShop)
       return
     }
+    this.residents.talk(this.nearest.id)
     EventBus.emit(GameEvents.showDialogue, `${this.nearest.label}: ${NPCS[this.nearest.id]?.dialogue ?? "«Привет!»"}`, 4200)
   }
 
@@ -171,8 +179,9 @@ export class MelonFarmScene extends BaseWorldScene {
         continue
       }
       if (type === "hero" && selected !== "watermelon") {
-        this.addResident("hero-watermelon", "Арбузик", x, y, 118, 132)
-        this.objects.push({ id: "watermelon-hero", kind: "hero", x, y, label: "Арбузик" })
+        const target: FarmObject = { id: "watermelon-hero", kind: "hero", x, y, label: "Арбузик" }
+        this.addResident("hero-watermelon", "Арбузик", x, y, 118, 132, target)
+        this.objects.push(target)
         NPCS["watermelon-hero"] = {
           asset: "hero-watermelon",
           label: "Арбузик",
@@ -183,14 +192,15 @@ export class MelonFarmScene extends BaseWorldScene {
       }
       const npc = NPCS[id]
       if (!npc) continue
-      this.addResident(npc.asset, npc.label, x, y, npc.width, npc.width * 1.22)
-      this.objects.push({ id, kind: "npc", x, y, label: npc.label })
+      const target: FarmObject = { id, kind: "npc", x, y, label: npc.label }
+      this.addResident(npc.asset, npc.label, x, y, npc.width, npc.width * 1.22, target)
+      this.objects.push(target)
     }
   }
 
-  private addResident(asset: string, label: string, x: number, y: number, width: number, height: number): void {
-    this.add.image(x, y, asset).setDisplaySize(width, height).setDepth(y + 20)
-    this.add.text(x, y + height * 0.55, label, {
+  private addResident(asset: string, label: string, x: number, y: number, width: number, height: number, target: FarmObject): void {
+    const image = this.add.image(x, y, asset).setDisplaySize(width, height).setDepth(y + 20)
+    const title = this.add.text(x, y + height * 0.55, label, {
       fontFamily: FONT,
       fontSize: "15px",
       fontStyle: "bold",
@@ -198,6 +208,7 @@ export class MelonFarmScene extends BaseWorldScene {
       backgroundColor: "#173f38dd",
       padding: { x: 8, y: 4 },
     }).setOrigin(0.5).setDepth(y + 40)
+    this.residents.add(target.id, image, title, target)
   }
 
   private updateNearest(): void {

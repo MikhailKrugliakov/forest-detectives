@@ -1,8 +1,10 @@
 import Phaser from "phaser"
+import { actorFor } from "../animation/AnimatedActor"
 import { updateGameStatus } from "../../accessibility"
 import { GADGETS } from "../../domain/gadgets"
 import { BEAVER_ROOM_ORDER, gameStore } from "../../domain/GameStore"
 import { scaledTrapDamage } from "../../domain/difficulty"
+import { BEAVER_CHECKPOINTS as CHECKPOINTS } from "../../domain/beaverLayout"
 import type { BeaverRoomId, GadgetId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { COLORS, FONT } from "../ui"
@@ -24,15 +26,6 @@ const ROOM_SEQUENCES: Partial<Record<BeaverRoomId, readonly number[]>> = {
   control: [2, 0, 3, 1],
 }
 
-const CHECKPOINTS: Record<BeaverRoomId | "entrance", { x: number; y: number }> = {
-  entrance: { x: 520, y: 1110 },
-  floor: { x: 820, y: 500 },
-  launchers: { x: 1510, y: 470 },
-  gas: { x: 1570, y: 750 },
-  battery: { x: 1510, y: 1050 },
-  control: { x: 2110, y: 1260 },
-}
-
 export class BeaverHouseScene extends BaseWorldScene {
   private stations: Station[] = []
   private floorTiles: Phaser.GameObjects.Rectangle[] = []
@@ -49,6 +42,7 @@ export class BeaverHouseScene extends BaseWorldScene {
   private gadgetLastUsed: Partial<Record<GadgetId, number>> = {}
   private maskUntil = 0
   private shieldUntil = 0
+  private trapTime = 0
   private lastPrompt = ""
   private chasmBarrier!: Phaser.Physics.Arcade.StaticGroup
 
@@ -63,6 +57,14 @@ export class BeaverHouseScene extends BaseWorldScene {
       return
     }
     gameStore.setLocation("beaver-house")
+    this.trapTime = 0
+    this.gasTickAt = 0
+    this.maskUntil = 0
+    this.shieldUntil = 0
+    this.gadgetLastUsed = {}
+    this.stations = []
+    this.floorTiles = []
+    this.flying = false
     this.cameras.main.setBackgroundColor("#171813")
     this.add.image(1200, 800, "beaver-house-bg").setDisplaySize(2400, 1600)
     const checkpoint = gameStore.state.beaverHouse.chasmCrossed && gameStore.state.quests["beaver-security"].status !== "ready"
@@ -81,10 +83,13 @@ export class BeaverHouseScene extends BaseWorldScene {
     EventBus.emit(GameEvents.showMessage, "Ловушки предупреждают перед ударом. Решай комнаты по порядку и ищи контрольные точки.", 5200)
   }
 
-  update(time: number, delta: number): void {
+  update(_time: number, delta: number): void {
     if (!this.player?.body) return
-    this.updateWorldInput(delta, !this.flying)
-    if (this.modalOpen || this.flying) return
+    this.updateWorldInput(delta, !this.flying && actorFor(this.player)?.activeAction !== "defeat")
+    if (this.modalOpen || actorFor(this.player)?.activeAction === "defeat") return
+    this.trapTime += Math.max(0, Math.min(delta, 50))
+    const time = this.trapTime
+    if (this.flying) return
     this.updateFloor(time)
     this.updateGas(time)
     this.updateNearest()
@@ -271,11 +276,13 @@ export class BeaverHouseScene extends BaseWorldScene {
         return
       }
       this.gadgetLastUsed[id] = time
+      actorFor(this.player)?.play("gadget", { duration: 600 })
       this.finishRoom("battery")
       EventBus.emit(GameEvents.showMessage, "Магнитная перчатка притянула батарею прямо в гнездо!", 2600)
       return
     }
     this.gadgetLastUsed[id] = time
+    actorFor(this.player)?.play("gadget", { duration: 600 })
     if (id === "gas-mask") {
       this.maskUntil = time + gadget.durationMs
       this.player.setTint(0x8ce6d1)
@@ -285,7 +292,7 @@ export class BeaverHouseScene extends BaseWorldScene {
       this.shieldUntil = time + gadget.durationMs
       this.player.setTint(0x6cc7ff)
       this.time.delayedCall(gadget.durationMs, () => {
-        if (this.time.now >= this.shieldUntil) this.player?.clearTint()
+        if (this.trapTime >= this.shieldUntil) this.player?.clearTint()
       })
       EventBus.emit(GameEvents.showMessage, "Импульсный щит ждёт следующий удар.", 1800)
     }
@@ -295,12 +302,12 @@ export class BeaverHouseScene extends BaseWorldScene {
     this.flying = true
     this.player.setVelocity(0, 0)
     this.player.setTint(0xffd66b)
+    actorFor(this.player)?.play("gadget", { duration: GADGETS.jetpack.durationMs })
     this.setChasmCollision(false)
     this.tweens.add({
       targets: this.player,
       x: 1940,
       y: 1050,
-      angle: 360,
       duration: GADGETS.jetpack.durationMs,
       ease: "Sine.easeInOut",
       onComplete: () => {
@@ -331,11 +338,24 @@ export class BeaverHouseScene extends BaseWorldScene {
     }
     const scaledDamage = scaledTrapDamage(damage, gameStore.state.difficulty)
     const result = gameStore.takeDamage(scaledDamage)
+    const actor = actorFor(this.player)
+    actor?.play(result.knockedOut ? "defeat" : "hurt", {
+      duration: result.knockedOut ? 550 : 210,
+      onComplete: result.knockedOut ? () => {
+        ;(this.player.body as Phaser.Physics.Arcade.Body).enable = true
+        actor.cancel()
+        this.resetCurrentRoom()
+      } : undefined,
+    })
+    if (result.knockedOut) {
+      this.player.setVelocity(0, 0)
+      ;(this.player.body as Phaser.Physics.Arcade.Body).enable = false
+    }
     this.cameras.main.shake(180, 0.009)
     this.player.setTint(0xff8b72)
     this.time.delayedCall(180, () => this.player?.clearTint())
     EventBus.emit(GameEvents.showMessage, `${message} −${scaledDamage} здоровья.`, 2400)
-    if (resetRoom || result.knockedOut) this.resetCurrentRoom()
+    if (resetRoom && !result.knockedOut) this.resetCurrentRoom()
   }
 
   private resetCurrentRoom(): void {

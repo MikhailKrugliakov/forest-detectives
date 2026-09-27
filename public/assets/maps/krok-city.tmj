@@ -1,0 +1,861 @@
+{
+  "compressionlevel": -1,
+  "height": 80,
+  "infinite": false,
+  "layers": [
+    {
+      "draworder": "topdown",
+      "id": 1,
+      "name": "collisions",
+      "objects": [
+        {
+          "id": 1,
+          "name": "sector-0-nw",
+          "x": 430,
+          "y": 440,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 2,
+          "name": "sector-0-ne",
+          "x": 1570,
+          "y": 440,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 3,
+          "name": "sector-0-sw",
+          "x": 430,
+          "y": 1160,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 4,
+          "name": "sector-0-se",
+          "x": 1570,
+          "y": 1160,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 5,
+          "name": "sector-1-nw",
+          "x": 2830,
+          "y": 440,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 6,
+          "name": "sector-1-ne",
+          "x": 3970,
+          "y": 440,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 7,
+          "name": "sector-1-sw",
+          "x": 2830,
+          "y": 1160,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 8,
+          "name": "sector-1-se",
+          "x": 3970,
+          "y": 1160,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 9,
+          "name": "sector-2-nw",
+          "x": 5230,
+          "y": 440,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 10,
+          "name": "sector-2-ne",
+          "x": 6370,
+          "y": 440,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 11,
+          "name": "sector-2-sw",
+          "x": 5230,
+          "y": 1160,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 12,
+          "name": "sector-2-se",
+          "x": 6370,
+          "y": 1160,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 13,
+          "name": "sector-3-nw",
+          "x": 7630,
+          "y": 440,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 14,
+          "name": "sector-3-ne",
+          "x": 8770,
+          "y": 440,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 15,
+          "name": "sector-3-sw",
+          "x": 7630,
+          "y": 1160,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 16,
+          "name": "sector-3-se",
+          "x": 8770,
+          "y": 1160,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 17,
+          "name": "sector-4-nw",
+          "x": 430,
+          "y": 2040,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 18,
+          "name": "sector-4-ne",
+          "x": 1570,
+          "y": 2040,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 19,
+          "name": "sector-4-sw",
+          "x": 430,
+          "y": 2760,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 20,
+          "name": "sector-4-se",
+          "x": 1570,
+          "y": 2760,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 21,
+          "name": "sector-5-nw",
+          "x": 2830,
+          "y": 2040,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 22,
+          "name": "sector-5-ne",
+          "x": 3970,
+          "y": 2040,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 23,
+          "name": "sector-5-sw",
+          "x": 2830,
+          "y": 2760,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 24,
+          "name": "sector-5-se",
+          "x": 3970,
+          "y": 2760,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 25,
+          "name": "sector-6-nw",
+          "x": 5230,
+          "y": 2040,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 26,
+          "name": "sector-6-ne",
+          "x": 6370,
+          "y": 2040,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 27,
+          "name": "sector-6-sw",
+          "x": 5230,
+          "y": 2760,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 28,
+          "name": "sector-6-se",
+          "x": 6370,
+          "y": 2760,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 29,
+          "name": "sector-7-nw",
+          "x": 7630,
+          "y": 2040,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 30,
+          "name": "sector-7-ne",
+          "x": 8770,
+          "y": 2040,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 31,
+          "name": "sector-7-sw",
+          "x": 7630,
+          "y": 2760,
+          "width": 400,
+          "height": 200
+        },
+        {
+          "id": 32,
+          "name": "sector-7-se",
+          "x": 8770,
+          "y": 2760,
+          "width": 400,
+          "height": 200
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 2,
+      "name": "world-objects",
+      "objects": [
+        {
+          "id": 33,
+          "name": "krok-outskirts",
+          "type": "portal",
+          "point": true,
+          "x": 160,
+          "y": 800
+        },
+        {
+          "id": 34,
+          "name": "ice-palace",
+          "type": "portal",
+          "point": true,
+          "x": 9440,
+          "y": 2400
+        },
+        {
+          "id": 35,
+          "name": "rivets",
+          "type": "quest",
+          "point": true,
+          "x": 630,
+          "y": 140
+        },
+        {
+          "id": 36,
+          "name": "tablets",
+          "type": "quest",
+          "point": true,
+          "x": 3030,
+          "y": 1460
+        },
+        {
+          "id": 37,
+          "name": "medicine",
+          "type": "quest",
+          "point": true,
+          "x": 5430,
+          "y": 1740
+        },
+        {
+          "id": 38,
+          "name": "street-lamps",
+          "type": "quest",
+          "point": true,
+          "x": 7830,
+          "y": 3060
+        },
+        {
+          "id": 39,
+          "name": "market-produce",
+          "type": "merchant",
+          "point": true,
+          "x": 6630,
+          "y": 140
+        },
+        {
+          "id": 40,
+          "name": "market-potions",
+          "type": "merchant",
+          "point": true,
+          "x": 6630,
+          "y": 3060
+        },
+        {
+          "id": 41,
+          "name": "prince",
+          "type": "prince",
+          "point": true,
+          "x": 8850,
+          "y": 2400
+        },
+        {
+          "id": 42,
+          "name": "west-resident",
+          "type": "resident",
+          "point": true,
+          "x": 630,
+          "y": 2300
+        },
+        {
+          "id": 43,
+          "name": "north-resident",
+          "type": "resident",
+          "point": true,
+          "x": 4170,
+          "y": 1400
+        },
+        {
+          "id": 44,
+          "name": "market-resident",
+          "type": "resident",
+          "point": true,
+          "x": 5430,
+          "y": 3000
+        },
+        {
+          "id": 45,
+          "name": "east-resident",
+          "type": "resident",
+          "point": true,
+          "x": 8970,
+          "y": 1400
+        },
+        {
+          "id": 46,
+          "name": "guard-1",
+          "type": "guard",
+          "point": true,
+          "x": 8660,
+          "y": 2280
+        },
+        {
+          "id": 47,
+          "name": "guard-2",
+          "type": "guard",
+          "point": true,
+          "x": 8660,
+          "y": 2530
+        },
+        {
+          "id": 48,
+          "name": "guard-3",
+          "type": "guard",
+          "point": true,
+          "x": 9150,
+          "y": 2280
+        },
+        {
+          "id": 49,
+          "name": "guard-4",
+          "type": "guard",
+          "point": true,
+          "x": 9150,
+          "y": 2530
+        },
+        {
+          "id": 50,
+          "name": "rivets-1",
+          "type": "rivets",
+          "point": true,
+          "x": 1200,
+          "y": 360
+        },
+        {
+          "id": 51,
+          "name": "rivets-2",
+          "type": "rivets",
+          "point": true,
+          "x": 630,
+          "y": 3060
+        },
+        {
+          "id": 52,
+          "name": "rivets-3",
+          "type": "rivets",
+          "point": true,
+          "x": 4230,
+          "y": 140
+        },
+        {
+          "id": 53,
+          "name": "rivets-4",
+          "type": "rivets",
+          "point": true,
+          "x": 9460,
+          "y": 2860
+        },
+        {
+          "id": 54,
+          "name": "tablets-1",
+          "type": "tablets",
+          "point": true,
+          "x": 2540,
+          "y": 2010
+        },
+        {
+          "id": 55,
+          "name": "tablets-2",
+          "type": "tablets",
+          "point": true,
+          "x": 5430,
+          "y": 1460
+        },
+        {
+          "id": 56,
+          "name": "tablets-3",
+          "type": "tablets",
+          "point": true,
+          "x": 8400,
+          "y": 430
+        },
+        {
+          "id": 57,
+          "name": "medicine-1",
+          "type": "medicine",
+          "point": true,
+          "x": 4660,
+          "y": 430
+        },
+        {
+          "id": 58,
+          "name": "medicine-2",
+          "type": "medicine",
+          "point": true,
+          "x": 6000,
+          "y": 2080
+        },
+        {
+          "id": 59,
+          "name": "medicine-3",
+          "type": "medicine",
+          "point": true,
+          "x": 9200,
+          "y": 2400
+        },
+        {
+          "id": 60,
+          "name": "street-lamps-1",
+          "type": "street-lamps",
+          "point": true,
+          "x": 140,
+          "y": 2200
+        },
+        {
+          "id": 61,
+          "name": "street-lamps-2",
+          "type": "street-lamps",
+          "point": true,
+          "x": 3600,
+          "y": 1740
+        },
+        {
+          "id": 62,
+          "name": "street-lamps-3",
+          "type": "street-lamps",
+          "point": true,
+          "x": 7060,
+          "y": 2710
+        },
+        {
+          "id": 63,
+          "name": "street-lamps-4",
+          "type": "street-lamps",
+          "point": true,
+          "x": 8400,
+          "y": 3060
+        },
+        {
+          "id": 64,
+          "name": "gate-resident",
+          "type": "resident",
+          "point": true,
+          "x": 630,
+          "y": 680
+        },
+        {
+          "id": 65,
+          "name": "garden-resident",
+          "type": "resident",
+          "point": true,
+          "x": 1770,
+          "y": 1400
+        },
+        {
+          "id": 66,
+          "name": "baker-resident",
+          "type": "resident",
+          "point": true,
+          "x": 4170,
+          "y": 680
+        },
+        {
+          "id": 67,
+          "name": "scribe-resident",
+          "type": "resident",
+          "point": true,
+          "x": 5430,
+          "y": 1400
+        },
+        {
+          "id": 68,
+          "name": "bell-resident",
+          "type": "resident",
+          "point": true,
+          "x": 7830,
+          "y": 680
+        },
+        {
+          "id": 69,
+          "name": "orchard-resident",
+          "type": "resident",
+          "point": true,
+          "x": 1770,
+          "y": 2280
+        },
+        {
+          "id": 70,
+          "name": "potter-resident",
+          "type": "resident",
+          "point": true,
+          "x": 3030,
+          "y": 3000
+        },
+        {
+          "id": 71,
+          "name": "canal-resident",
+          "type": "resident",
+          "point": true,
+          "x": 8970,
+          "y": 3000
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "npc-routes",
+      "type": "objectgroup",
+      "visible": false,
+      "opacity": 1,
+      "x": 0,
+      "y": 0,
+      "objects": [
+        {
+          "id": 72,
+          "name": "west-resident",
+          "x": 630,
+          "y": 2300,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 100
+            },
+            {
+              "x": 150,
+              "y": 100
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "name": "north-resident",
+          "x": 4170,
+          "y": 1400,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 60
+            },
+            {
+              "x": 150,
+              "y": 60
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "name": "market-resident",
+          "x": 5430,
+          "y": 3000,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 60
+            },
+            {
+              "x": 160,
+              "y": 60
+            }
+          ]
+        },
+        {
+          "id": 75,
+          "name": "east-resident",
+          "x": 8970,
+          "y": 1400,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 60
+            },
+            {
+              "x": 160,
+              "y": 60
+            }
+          ]
+        },
+        {
+          "id": 76,
+          "name": "gate-resident",
+          "x": 630,
+          "y": 680,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 120
+            },
+            {
+              "x": 150,
+              "y": 120
+            }
+          ]
+        },
+        {
+          "id": 77,
+          "name": "garden-resident",
+          "x": 1770,
+          "y": 1400,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 60
+            },
+            {
+              "x": 160,
+              "y": 60
+            }
+          ]
+        },
+        {
+          "id": 78,
+          "name": "baker-resident",
+          "x": 4170,
+          "y": 680,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 120
+            },
+            {
+              "x": 150,
+              "y": 120
+            }
+          ]
+        },
+        {
+          "id": 79,
+          "name": "scribe-resident",
+          "x": 5430,
+          "y": 1400,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 60
+            },
+            {
+              "x": 160,
+              "y": 60
+            }
+          ]
+        },
+        {
+          "id": 80,
+          "name": "bell-resident",
+          "x": 7830,
+          "y": 680,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 120
+            },
+            {
+              "x": 150,
+              "y": 120
+            }
+          ]
+        },
+        {
+          "id": 81,
+          "name": "orchard-resident",
+          "x": 1770,
+          "y": 2280,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 120
+            },
+            {
+              "x": 150,
+              "y": 120
+            }
+          ]
+        },
+        {
+          "id": 82,
+          "name": "potter-resident",
+          "x": 3030,
+          "y": 3000,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 60
+            },
+            {
+              "x": 160,
+              "y": 60
+            }
+          ]
+        },
+        {
+          "id": 83,
+          "name": "canal-resident",
+          "x": 8970,
+          "y": 3000,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 60
+            },
+            {
+              "x": 160,
+              "y": 60
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "nextlayerid": 4,
+  "nextobjectid": 84,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.11.0",
+  "tileheight": 40,
+  "tilesets": [],
+  "tilewidth": 40,
+  "type": "map",
+  "version": "1.10",
+  "width": 240
+}

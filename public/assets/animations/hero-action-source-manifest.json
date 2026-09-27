@@ -1,0 +1,41 @@
+[
+  {
+    "actor": "hero-wolf",
+    "asset": "hero-wolf-actions.png",
+    "layout": "8 columns ×12 rows: throw (4directions), gadget (4directions), mine (4directions);8poses per row.",
+    "source": "/Users/krugliakovvn/.codex/generated_images/019ffc9a-ea80-7e12-a2bc-eefdcadb60e6/exec-39e43eee-f02d-4117-8489-fd40cfdaca3a.png",
+    "layoutRepair": "Repack the same96wolf poses into8columns12rows, reducing their size to keep all ears, tails and pickaxes inside128pxcells with clear gaps; preserve all poses and directions.",
+    "backgroundEdit": "CHANGE THE BACKGROUND COLOR ONLY to uniformly solid pure bright magenta #FF00FF. All background pixels between sprites MUST BECOME MAGENTA. Exact1024×1536canvas,8columns12rows96poses; preserve character artwork, pose positions and scale. No gradient, no shadows, no beige/brown/blue/grey backdrop. Keep all character details and outfits unchanged. This is chroma-key game spritesheet; flat MAGENTA background is compulsory, not a natural illustration."
+  },
+  {
+    "actor": "hero-fox",
+    "asset": "hero-fox-actions.png",
+    "layout": "8 columns ×12 rows: throw (4directions), gadget (4directions), mine (4directions);8poses per row.",
+    "source": "/Users/krugliakovvn/.codex/generated_images/019ffc9a-ea80-7e12-a2bc-eefdcadb60e6/exec-380345a1-0573-4961-bbff-0916c6a450ef.png",
+    "backgroundEdit": "CHANGE THE BACKGROUND COLOR ONLY to uniformly solid pure bright magenta #FF00FF. All background pixels between sprites MUST BECOME MAGENTA. Exact1024×1536canvas,8columns12rows96poses; preserve character artwork, pose positions and scale. No gradient, no shadows, no beige/brown/blue/grey backdrop. Keep all character details and outfits unchanged. This is chroma-key game spritesheet; flat MAGENTA background is compulsory, not a natural illustration."
+  },
+  {
+    "actor": "hero-rabbit",
+    "asset": "hero-rabbit-actions.png",
+    "layout": "8 columns ×12 rows: throw (4directions), gadget (4directions), mine (4directions);8poses per row.",
+    "source": "/Users/krugliakovvn/.codex/generated_images/019ffc9a-ea80-7e12-a2bc-eefdcadb60e6/exec-b4c1c156-c69b-475e-8faa-64c15c1ae018.png",
+    "generationPrompt": "Image1 is CHARACTER IDENTITY. Image2 is EXACT GRID LAYOUT AND ACTION-POSE TEMPLATE, NOT character identity. Rebuild Image2 replacing EVERY fox with the SAME character fromImage1: Tan rabbit with blue bowtie, brown detective satchel and one bent ear. No scarf, no lasso, no magnifier in hands. Preserve precisely8columns12rows96full-bodycells1024x1536. Background uniformlyFLAT MAGENTA#FF00FF fromImage2. Each4-rowgroup direction is front,back,left,right. Top4rows throwtomato8frames; middle4rows magneticgauntlet8frames; bottom4rows pickaxe8frames. EVERYGROUPMUSTHAVE4ROWS. Do NOT omit the right-facing gauntlet row. Keep exact per-cellcenter,feetbaseline,consistentbody-size. Copy action poses, NOT foxface/fur/clothes. All props correctforaction: tomato onlyheldbeforethrow, glowinggloveonlymiddle4rows, realtwohandedpickaxeonlylast4rows. No originalmainweaponinhand. Preserve matchingstorybookgameart, readablejoints, no labels, margins,cellborders,castshadow or gradient. Exact128pxsquarecells.",
+    "backgroundEdit": "CHANGE THE BACKGROUND COLOR ONLY to uniformly solid pure bright magenta #FF00FF. All background pixels between sprites MUST BECOME MAGENTA. Exact1024×1536canvas,8columns12rows96poses; preserve character artwork, pose positions and scale. No gradient, no shadows, no beige/brown/blue/grey backdrop. Keep all character details and outfits unchanged. This is chroma-key game spritesheet; flat MAGENTA background is compulsory, not a natural illustration."
+  },
+  {
+    "actor": "hero-watermelon",
+    "asset": "hero-watermelon-actions.png",
+    "layout": "8 columns ×12 rows: throw (4directions), gadget (4directions), mine (4directions);8poses per row.",
+    "source": "/Users/krugliakovvn/.codex/generated_images/019ffc9a-ea80-7e12-a2bc-eefdcadb60e6/exec-1464f3a8-1e6d-46c5-8384-f2dd3a29073d.png",
+    "generationPrompt": "Image1 is CHARACTER IDENTITY. Image2 is EXACT GRID LAYOUT AND ACTION-POSE TEMPLATE, NOT character identity. Rebuild Image2 replacing EVERY fox with the SAME character fromImage1: Living round green striped watermelon with brown trenchcoat and hat, sunglasses, red neckerchief, green arms and booted legs. No fox ears or fur. Preserve precisely8columns12rows96full-bodycells1024x1536. Background uniformlyFLAT MAGENTA#FF00FF fromImage2. Each4-rowgroup direction is front,back,left,right. Top4rows throwtomato8frames; middle4rows magneticgauntlet8frames; bottom4rows pickaxe8frames. EVERYGROUPMUSTHAVE4ROWS. Do NOT omit the right-facing gauntlet row. Keep exact per-cellcenter,feetbaseline,consistentbody-size. Copy action poses, NOT foxface/fur/clothes. All props correctforaction: tomato onlyheldbeforethrow, glowinggloveonlymiddle4rows, realtwohandedpickaxeonlylast4rows. No originalmainweaponinhand. Preserve matchingstorybookgameart, readablejoints, no labels, margins,cellborders,castshadow or gradient. Exact128pxsquarecells.",
+    "backgroundEdit": "CHANGE THE BACKGROUND COLOR ONLY to uniformly solid pure bright magenta #FF00FF. All background pixels between sprites MUST BECOME MAGENTA. Exact1024×1536canvas,8columns12rows96poses; preserve character artwork, pose positions and scale. No gradient, no shadows, no beige/brown/blue/grey backdrop. Keep all character details and outfits unchanged. This is chroma-key game spritesheet; flat MAGENTA background is compulsory, not a natural illustration."
+  },
+  {
+    "actor": "hero-sheepwolf",
+    "asset": "hero-sheepwolf-actions.png",
+    "layout": "8 columns ×12 rows: throw (4directions), gadget (4directions), mine (4directions);8poses per row.",
+    "source": "/Users/krugliakovvn/.codex/generated_images/019ffc9a-ea80-7e12-a2bc-eefdcadb60e6/exec-e5a35544-9731-4476-85e1-a3d741f8bb61.png",
+    "generationPrompt": "Image1 is the EXACT CHARACTER IDENTITY: cream white fluffy golden retriever boy in blue baseball cap and outfit. Image2 is the EXACT GRID LAYOUT AND POSE TEMPLATE with 8 columns and12rows. Rebuild Image2 replacing EVERY fox with this same retriever, keep his face fur outfit cap. Precisely96fullbodyposes in 8columns12rows,1024x1536canvas. Each consecutive group of4rows faces DOWN/front,UP/back,LEFT(nosepointstoleft),RIGHT(nosepointstoright). Top4rows throwtomato8poses:hold,windup,windup,release,followthrough,recover,recover,idle. Middle4rows blue magneticgloveactivation8poses. Last4rows actualpickaxe mining8poses, BOTH left-facing and right-facing fullydistinct. Preserve these12rows and8columns, no missingrows. No bat intheseactions. Eachpose completelyinsideits128x128cell withfeetbaseliney118. Flatuniformmagenta#FF00FFbackgroundforchroma, noshadows/nogrid/nolabels. SAMEexactcharacteroutfitinall96poses. Use Image2 for4directionsandlayout,NOTfoxidentity.",
+    "backgroundEdit": "CHANGE THE BACKGROUND COLOR ONLY to uniformly solid pure bright magenta #FF00FF. All background pixels between sprites MUST BECOME MAGENTA. Exact1024×1536canvas,8columns12rows96poses; preserve character artwork, pose positions and scale. No gradient, no shadows, no beige/brown/blue/grey backdrop. Keep all character details and outfits unchanged. This is chroma-key game spritesheet; flat MAGENTA background is compulsory, not a natural illustration."
+  }
+]

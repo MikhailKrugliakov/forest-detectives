@@ -1,0 +1,23 @@
+{
+  "compressionlevel": -1, "height": 23, "infinite": false,
+  "layers": [
+    { "id": 1, "image": "../interiors/ice-throne.jpg", "name": "background", "opacity": 1, "type": "imagelayer", "visible": true, "x": 0, "y": 0 },
+    { "draworder": "topdown", "id": 2, "name": "collisions", "objects": [
+      { "id": 1, "name": "north-wall", "x": 0, "y": 0, "width": 1280, "height": 200 },
+      { "id": 2, "name": "south-wall", "x": 0, "y": 740, "width": 1280, "height": 160 },
+      { "id": 3, "name": "west-north", "x": 0, "y": 0, "width": 180, "height": 345 },
+      { "id": 4, "name": "west-south", "x": 0, "y": 535, "width": 180, "height": 365 },
+      { "id": 5, "name": "east-wall", "x": 1220, "y": 0, "width": 60, "height": 900 },
+      { "id": 6, "name": "north-ice-bench", "x": 380, "y": 130, "width": 140, "height": 60 },
+      { "id": 7, "name": "south-ice-bench", "x": 370, "y": 690, "width": 135, "height": 65 },
+      { "id": 8, "name": "north-ice-table", "x": 630, "y": 130, "width": 145, "height": 65 },
+      { "id": 9, "name": "south-ice-table", "x": 630, "y": 690, "width": 145, "height": 65 },
+      { "id": 10, "name": "ice-throne", "x": 1120, "y": 270, "width": 100, "height": 245 },
+      { "id": 12, "name": "south-ice-bench-east", "x": 880, "y": 690, "width": 145, "height": 65 }
+    ], "opacity": 1, "type": "objectgroup", "visible": true, "x": 0, "y": 0 },
+    { "draworder": "topdown", "id": 3, "name": "world-objects", "objects": [
+      { "id": 11, "name": "ice-palace", "point": true, "type": "portal", "x": 140, "y": 450 }
+    ], "opacity": 1, "type": "objectgroup", "visible": true, "x": 0, "y": 0 }
+  ],
+  "nextlayerid": 4, "nextobjectid": 13, "orientation": "orthogonal", "renderorder": "right-down", "tiledversion": "1.11.0", "tileheight": 40, "tilesets": [], "tilewidth": 40, "type": "map", "version": "1.10", "width": 32
+}

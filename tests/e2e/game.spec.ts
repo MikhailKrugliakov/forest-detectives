@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
+import { isOnRoad, WILD_FOREST_ROADS } from "../../src/domain/roads"
+import { VILLAGE_DOORS, VILLAGE_RESIDENTS } from "../../src/domain/villageLayout"
 
 async function canvasPoint(page: Page, x: number, y: number): Promise<{ x: number; y: number }> {
   const canvas = page.locator("canvas")
@@ -85,9 +87,9 @@ test("Овцеволк проходит из деревни в Дикий лес
   await expect(status).toHaveAttribute("data-player-y", /13\d\d|14\d\d/)
 
   for (const npc of [
-    { x: 760, y: 470 },
+    VILLAGE_RESIDENTS["lost-letters"],
     { x: 650, y: 1080 },
-    { x: 1650, y: 470 },
+    VILLAGE_RESIDENTS["robot-sweep"],
     { x: 650, y: 1080 },
   ]) {
     await page.evaluate((point) => window.__FOREST_GAME__?.teleport(point.x, point.y), npc)
@@ -137,9 +139,9 @@ test("Овцеволк проходит из деревни в Дикий лес
   await expect(status).toHaveAttribute("data-player-y", /4\d\d/)
 
   for (const npc of [
-    { x: 760, y: 470, final: false },
+    { ...VILLAGE_RESIDENTS["lost-letters"], final: false },
     { x: 650, y: 1080, final: false },
-    { x: 1650, y: 470, final: false },
+    { ...VILLAGE_RESIDENTS["robot-sweep"], final: false },
     { x: 650, y: 1080, final: true },
   ]) {
     await page.evaluate((point) => window.__FOREST_GAME__?.teleport(point.x, point.y), npc)
@@ -161,7 +163,7 @@ test("Овцеволк проходит из деревни в Дикий лес
 test("три поручения оплачивают реактивный ранец в магазине Крота", async ({ page }) => {
   await page.goto("/?scene=forest-village")
   await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "forest-village")
-  await page.evaluate(() => {
+  await page.evaluate((door) => {
     const game = window.__FOREST_GAME__
     game?.acceptErrand("garden-beds")
     for (const target of ["bed-1", "bed-2", "bed-3"]) game?.completeErrandTarget("garden-beds", target)
@@ -172,8 +174,8 @@ test("три поручения оплачивают реактивный ран
     game?.acceptErrand("village-lanterns")
     for (const target of ["lamp-1", "lamp-2", "lamp-3", "lamp-4"]) game?.completeErrandTarget("village-lanterns", target)
     game?.turnInErrand("village-lanterns")
-    game?.teleport(1360, 700)
-  })
+    game?.teleport(door.x, door.y)
+  }, VILLAGE_DOORS["mole-shop"])
   await expect(page.locator("#game-status")).toHaveAttribute("data-gears", "12")
   await page.waitForTimeout(80)
   await page.keyboard.press("e")
@@ -193,17 +195,17 @@ test("западный район деревни содержит трёх жи�
   await expect(status).toHaveAttribute("data-screen", "forest-village")
   const errands = [
     {
-      npc: { x: -1760, y: 620 },
+      npc: VILLAGE_RESIDENTS["mushroom-hunt"],
       targets: [{ x: -2150, y: 500 }, { x: -2050, y: 1320 }, { x: -750, y: 1180 }],
       reward: "mushroom-token",
     },
     {
-      npc: { x: -650, y: 650 },
-      targets: [{ x: -1350, y: 450 }, { x: -650, y: 950 }, { x: -1650, y: 1450 }],
+      npc: VILLAGE_RESIDENTS["fence-repair"],
+      targets: [{ x: -1150, y: 450 }, { x: -650, y: 950 }, { x: -1650, y: 1450 }],
       reward: "carpenter-ribbon",
     },
     {
-      npc: { x: -1150, y: 1450 },
+      npc: VILLAGE_RESIDENTS["trail-signs"],
       targets: [{ x: -1100, y: 320 }, { x: -250, y: 750 }, { x: -450, y: 1300 }],
       reward: "trail-compass",
     },
@@ -239,8 +241,8 @@ test("дороги деревни проходимы, а жители остаю
   const status = page.locator("#game-status")
   await expect(status).toHaveAttribute("data-screen", "forest-village")
 
-  // Главная западная дорога пересекает стык двух половин большой карты.
-  await page.evaluate(() => window.__FOREST_GAME__?.teleport(-60, 800))
+  // Главная западная дорога пересекает цельный мост на новой панораме.
+  await page.evaluate(() => window.__FOREST_GAME__?.teleport(-60, 700))
   const roadStart = Number(await status.getAttribute("data-player-x"))
   await hold(page, ["d"], 2_000)
   await page.waitForTimeout(150)
@@ -249,12 +251,12 @@ test("дороги деревни проходимы, а жители остаю
   expect(roadEnd).toBeGreaterThan(20)
 
   // У жителей есть только небольшой блокирующий контур у ног.
-  await page.evaluate(() => window.__FOREST_GAME__?.teleport(-1840, 620))
+  await page.evaluate(({ x, y }) => window.__FOREST_GAME__?.teleport(x - 80, y), VILLAGE_RESIDENTS["mushroom-hunt"])
   await hold(page, ["d"], 1_500)
   await page.waitForTimeout(150)
   const blockedByResident = Number(await status.getAttribute("data-player-x"))
-  expect(blockedByResident).toBeGreaterThan(-1830)
-  expect(blockedByResident).toBeLessThan(-1790)
+  expect(blockedByResident).toBeGreaterThan(VILLAGE_RESIDENTS["mushroom-hunt"].x - 70)
+  expect(blockedByResident).toBeLessThan(VILLAGE_RESIDENTS["mushroom-hunt"].x - 30)
 })
 
 test("все пять домов героев открываются и выдают одноразовые награды", async ({ page }) => {
@@ -262,10 +264,10 @@ test("все пять домов героев открываются и выда
   await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "forest-village")
   await page.waitForTimeout(300)
   const homes = [
-    { location: "wolf-home", x: 260, y: 590, hero: "wolf" },
-    { location: "fox-home", x: 1930, y: 680, hero: "fox" },
-    { location: "rabbit-home", x: 830, y: 1480, hero: "rabbit" },
-    { location: "sheepwolf-home", x: 1970, y: 1430, hero: "sheepwolf" },
+    { location: "wolf-home", ...VILLAGE_DOORS["wolf-home"], hero: "wolf" },
+    { location: "fox-home", ...VILLAGE_DOORS["fox-home"], hero: "fox" },
+    { location: "rabbit-home", ...VILLAGE_DOORS["rabbit-home"], hero: "rabbit" },
+    { location: "sheepwolf-home", ...VILLAGE_DOORS["sheepwolf-home"], hero: "sheepwolf" },
   ] as const
   for (const home of homes) {
     await page.evaluate((point) => window.__FOREST_GAME__?.teleport(point.x, point.y), home)
@@ -396,12 +398,31 @@ test("четыре помидора обезвреживают обычного 
     game?.purchaseProduce("tomato")
     game?.purchaseProduce("tomato")
     game?.equipWeapon("tomato")
-    game?.teleport(250, 1220)
+    // Stay inside the road corridor; 250,1220 is forest and is correctly
+    // rejected before the throw animation reaches its release marker.
+    game?.teleport(390, 1220)
   })
   await expect(status).toHaveAttribute("data-tomatoes", "4")
   for (let shot = 0; shot < 4; shot += 1) {
-    await page.keyboard.press("Space")
-    await page.waitForTimeout(500)
+    // A hit can interrupt the windup without consuming a tomato. Count actual
+    // releases, not key presses; four landed tomatoes still deal exactly 2 HP.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const hare = await page.evaluate(() => window.__FOREST_GAME__!.getActors().find((actor) => actor.name === "hare-1"))
+      expect(hare).toBeTruthy()
+      const firingPoint = [
+        { x: hare!.x - 130, y: hare!.y, key: "d" },
+        { x: hare!.x + 130, y: hare!.y, key: "a" },
+        { x: hare!.x, y: hare!.y - 130, key: "s" },
+        { x: hare!.x, y: hare!.y + 130, key: "w" },
+      ].find((point) => isOnRoad(WILD_FOREST_ROADS, point.x, point.y))
+      expect(firingPoint).toBeTruthy()
+      await page.evaluate((point) => window.__FOREST_GAME__!.teleport(point.x, point.y), firingPoint!)
+      await hold(page, [firingPoint!.key], 35)
+      await page.keyboard.press("Space")
+      await page.waitForTimeout(500)
+      if (Number(await status.getAttribute("data-tomatoes")) === 3 - shot) break
+    }
+    await expect(status).toHaveAttribute("data-tomatoes", String(3 - shot))
   }
   await expect(status).toHaveAttribute("data-enemies", "1")
   await expect(status).toHaveAttribute("data-active-enemies", "9")
@@ -770,6 +791,53 @@ test("лес и скалы вне дорог непроходимы в обеи�
   await page.waitForTimeout(180)
   await expect(status).toHaveAttribute("data-player-on-road", "true")
   expect(Number(await status.getAttribute("data-player-y"))).toBeGreaterThan(650)
+})
+
+test("дороги проходят через прежние блокировки леса, гор и перевала", async ({ page }) => {
+  test.setTimeout(45_000)
+  const routes = [
+    { scene: "wild-forest", x: 1500, y: 830, minX: 1620 },
+    { scene: "mountain-hollow", x: 2880, y: 1190, minX: 2950 },
+    { scene: "bird-pass", x: 1920, y: 755, minX: 2040 },
+  ]
+  const status = page.locator("#game-status")
+  for (const route of routes) {
+    await page.goto(`/?scene=${route.scene}&hero=sheepwolf`)
+    await expect(status).toHaveAttribute("data-screen", route.scene)
+    await page.evaluate((point) => {
+      window.__FOREST_GAME__?.setDifficulty("walk")
+      if (point.scene === "mountain-hollow") {
+        window.__FOREST_GAME__?.damageEnemy("mantis-1", 999)
+        window.__FOREST_GAME__?.damageEnemy("wasp-5", 999)
+      }
+      if (point.scene === "bird-pass") {
+        for (const id of ["sparrow-5", "sparrow-6", "owl-1", "owl-2", "owl-3"]) {
+          window.__FOREST_GAME__?.damageEnemy(id, 999)
+        }
+      }
+      window.__FOREST_GAME__?.teleport(point.x, point.y)
+    }, route)
+    await page.waitForTimeout(100)
+    // Assert traversal, not how many frames fit into a wall-clock second while
+    // the browser decodes the location's directional atlases.
+    await page.keyboard.down("d")
+    try {
+      await expect.poll(async () => Number(await status.getAttribute("data-player-x")), { message: route.scene, timeout: 4000 }).toBeGreaterThan(route.minX)
+    } finally { await page.keyboard.up("d") }
+    await expect(status).toHaveAttribute("data-player-on-road", "true")
+  }
+})
+
+test("на Прогулке атаки робозверя не тратят здоровье", async ({ page }) => {
+  await page.goto("/?scene=wild-forest&hero=sheepwolf")
+  const status = page.locator("#game-status")
+  await expect(status).toHaveAttribute("data-screen", "wild-forest")
+  await page.evaluate(() => {
+    window.__FOREST_GAME__?.setDifficulty("walk")
+    window.__FOREST_GAME__?.teleport(470, 1220)
+  })
+  await page.waitForTimeout(3000)
+  await expect(status).toHaveAttribute("data-health", "100")
 })
 
 test("герой и робозверь физически не проходят друг сквозь друга", async ({ page }) => {

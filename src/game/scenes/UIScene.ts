@@ -3,7 +3,9 @@ import { CHARACTERS } from "../../domain/characters"
 import { gameStore } from "../../domain/GameStore"
 import { GADGET_IDS, GADGETS } from "../../domain/gadgets"
 import { BUILDING_MATERIAL_IDS, BUILDING_MATERIALS } from "../../domain/materials"
-import { PRODUCE, PRODUCE_IDS } from "../../domain/produce"
+import { PRODUCE, FARM_PRODUCE_IDS, KROK_MARKET_PRODUCE_IDS } from "../../domain/produce"
+import { oceanObjective, SCUBA_PRICE } from "../../domain/ocean"
+import { KROK_ERRAND_IDS, KROK_ERRANDS } from "../../domain/krok"
 import { PICKAXE_RECIPE, RESOURCES, SURFACE_RESOURCE_IDS } from "../../domain/resources"
 import { QUEST_IDS, QUESTS } from "../../domain/quests"
 import { ERRAND_IDS, ERRANDS, LOCATION_LABELS } from "../../domain/village"
@@ -42,6 +44,7 @@ export class UIScene extends Phaser.Scene {
   private pauseOpen = false
   private pausedWorldScenes: string[] = []
   private inventoryTab: "quests" | "gadgets" | "resources" | "rewards" | "saves" = "quests"
+  private questPage: "village" | "krok" | "ocean" = "village"
 
   constructor() {
     super("ui")
@@ -61,10 +64,16 @@ export class UIScene extends Phaser.Scene {
     EventBus.on(GameEvents.openQuest, this.openQuest, this)
     EventBus.on(GameEvents.openErrand, this.openErrand, this)
     EventBus.on(GameEvents.openShop, this.openShop, this)
+    EventBus.on(GameEvents.openScubaShop, this.openScubaShop, this)
+    EventBus.on(GameEvents.oceanIntro, this.showOceanIntro, this)
+    EventBus.on(GameEvents.oceanComplete, this.showOceanCompletion, this)
     EventBus.on(GameEvents.openMaterials, this.openMaterialsShop, this)
     EventBus.on(GameEvents.openProduceShop, this.openProduceShop, this)
+    EventBus.on(GameEvents.openKrokMarket, this.openKrokMarket, this)
+    EventBus.on(GameEvents.openKrokPotions, this.openKrokPotions, this)
     EventBus.on(GameEvents.mountainComplete, this.showMountainCompletion, this)
     EventBus.on(GameEvents.birdPassComplete, this.showBirdPassCompletion, this)
+    EventBus.on(GameEvents.walrusComplete, this.showWalrusCompletion, this)
     EventBus.on("close-modal", this.closeModal, this)
     this.input.keyboard?.on("keydown-ESC", this.handleEscape, this)
 
@@ -79,10 +88,16 @@ export class UIScene extends Phaser.Scene {
       EventBus.off(GameEvents.openQuest, this.openQuest, this)
       EventBus.off(GameEvents.openErrand, this.openErrand, this)
       EventBus.off(GameEvents.openShop, this.openShop, this)
+    EventBus.off(GameEvents.openScubaShop, this.openScubaShop, this)
+    EventBus.off(GameEvents.oceanIntro, this.showOceanIntro, this)
+    EventBus.off(GameEvents.oceanComplete, this.showOceanCompletion, this)
       EventBus.off(GameEvents.openMaterials, this.openMaterialsShop, this)
       EventBus.off(GameEvents.openProduceShop, this.openProduceShop, this)
+      EventBus.off(GameEvents.openKrokMarket, this.openKrokMarket, this)
+      EventBus.off(GameEvents.openKrokPotions, this.openKrokPotions, this)
       EventBus.off(GameEvents.mountainComplete, this.showMountainCompletion, this)
       EventBus.off(GameEvents.birdPassComplete, this.showBirdPassCompletion, this)
+      EventBus.off(GameEvents.walrusComplete, this.showWalrusCompletion, this)
       EventBus.off("close-modal", this.closeModal, this)
       this.input.keyboard?.off("keydown-ESC", this.handleEscape, this)
     })
@@ -103,16 +118,34 @@ export class UIScene extends Phaser.Scene {
     } else {
       const completed = QUEST_IDS.filter((id) => state.quests[id].status === "completed").length
       const location = LOCATION_LABELS[state.location]
-      if (state.location === "mountain-hollow") {
+      if (state.walrusCleared && ["forest-village", "mole-shop", "beach", "sea", "trench"].includes(state.location)) {
+        this.objectiveText.setText(`${location} • ${oceanObjective(state)}`)
+      } else if (state.location === "mountain-hollow") {
         const guardians = ["guardian-axe", "guardian-flamethrower"].filter((id) => state.defeatedEnemies.includes(id)).length
         this.objectiveText.setText(`${location}  •  ПОБЕДЫ ${state.mountainEnemyDefeats}  •  СТРАЖНИКИ ${guardians}/2`)
       } else if (state.location === "bird-pass") {
         const turtle = state.birdPassCleared ? "ПОБЕЖДЁН" : "АКТИВЕН"
         this.objectiveText.setText(`${location}  •  ПОБЕДЫ ${state.birdPassEnemyDefeats}  •  БРОНЕПАНЦИРЬ ${turtle}`)
+      } else if (state.location === "snow-valley") {
+        this.objectiveText.setText(`${location}  •  ПОБЕДЫ ${state.snowValleyEnemyDefeats}  •  ГЛАВА ${state.chapter}`)
+      } else if (state.location === "snow-city") {
+        this.objectiveText.setText(`${location}  •  ПОБЕДЫ ${state.snowCityEnemyDefeats}  •  ГЛАВА ${state.chapter}`)
+      } else if (state.location === "krok-outskirts") {
+        const defeated = state.defeatedEnemies.filter((id) => id.startsWith("siege-")).length
+        this.objectiveText.setText(`ОСАДА КРОКОВ ${defeated}/13  •  ${state.krokSiegeCleared ? "ВОРОТА ОТКРЫТЫ" : "ВОРОТА ЗАКРЫТЫ"}`)
+      } else if (state.location === "krok-city") {
+        const errands = KROK_ERRAND_IDS.filter((id) => state.krokErrands[id].status === "completed").length
+        this.objectiveText.setText(`КРОКИ • ПОРУЧЕНИЯ ${errands}/4 • ПРИНЦ: ${this.questStatusLabel(state.princeQuest.status)}`)
+      } else if (state.location === "ice-palace") {
+        this.objectiveText.setText(`${location}  •  ПОБЕДЫ ${state.icePalaceEnemyDefeats}  •  ГЛАВА ${state.chapter}`)
+      } else if (state.location === "ice-throne") {
+        this.objectiveText.setText(`${location}  •  МОРЖ ${state.walrusCleared ? "ПОБЕЖДЁН" : "ОХРАНЯЕТ ТРОН"}  •  ГЛАВА ${state.chapter}`)
       } else {
         this.objectiveText.setText(`${location}  •  ЗАДАНИЯ ${completed}/4  •  ПОБЕЖДЕНО ${state.totalEnemyDefeats}`)
       }
     }
+    this.objectiveText.setFontSize(this.objectiveText.text.length > 50 ? 13 : 16)
+    this.objectiveText.setWordWrapWidth(465).setAlign("center")
     const staminaRatio = state.maxStamina === 0 ? 0 : state.stamina / state.maxStamina
     this.staminaFill.width = 188 * staminaRatio
     this.staminaText.setText(`Бег ${Math.ceil(state.stamina)}/${state.maxStamina}`)
@@ -603,11 +636,36 @@ export class UIScene extends Phaser.Scene {
   }
 
   private populateQuestJournal(elements: Phaser.GameObjects.GameObject[]): void {
+    if (!gameStore.state.walrusCleared && this.questPage === "ocean") this.questPage = "village"
+    elements.push(
+      addButton(this, 370, 419, 225, 28, "Задания деревни", () => this.switchQuestPage("village"), this.questPage === "village" ? COLORS.coral : COLORS.leaf, "13px"),
+      addButton(this, 825, 419, 225, 28, "Город Кроков", () => this.switchQuestPage("krok"), this.questPage === "krok" ? COLORS.coral : COLORS.leaf, "13px"),
+    )
+    if (gameStore.state.walrusCleared) elements.push(addButton(this, 600, 419, 200, 28, "Морская глава", () => this.switchQuestPage("ocean"), this.questPage === "ocean" ? COLORS.coral : COLORS.leaf, "13px"))
+    if (this.questPage === "ocean") {
+      this.populateOceanJournal(elements)
+      return
+    }
+    if (this.questPage === "krok") {
+      KROK_ERRAND_IDS.forEach((id, index) => {
+        const errand = KROK_ERRANDS[id]
+        const state = gameStore.state.krokErrands[id]
+        const x = index % 2 === 0 ? 445 : 840
+        const y = 472 + Math.floor(index / 2) * 80
+        elements.push(
+          this.add.rectangle(x, y, 355, 67, state.status === "completed" ? 0xdcebd5 : 0xefe5c5).setStrokeStyle(2, 0x8b7855, 0.65),
+          this.add.text(x - 165, y - 26, `${errand.icon} ${errand.title}`, { fontFamily: FONT, fontSize: "15px", fontStyle: "bold", color: "#173f38" }),
+          this.add.text(x - 165, y + 2, `${this.questStatusLabel(state.status)} • ${state.completedTargets.length}/${errand.target} • ⚙️ 4`, { fontFamily: FONT, fontSize: "13px", color: "#4f725d" }),
+        )
+      })
+      elements.push(this.add.text(270, 595, `👑 Поручение Принца: победить Моржа • ${this.questStatusLabel(gameStore.state.princeQuest.status)}`, { fontFamily: FONT, fontSize: "16px", fontStyle: "bold", color: "#345c4d" }))
+      return
+    }
     QUEST_IDS.forEach((id, index) => {
       const quest = QUESTS[id]
       const status = gameStore.state.quests[id].status
       const progress = gameStore.questProgress(id)
-      const y = 423 + index * 46
+      const y = 445 + index * 42
       elements.push(
         this.add.rectangle(445, y + 18, 365, 40, status === "completed" ? 0xdcebd5 : 0xefe5c5, 1).setStrokeStyle(2, 0x8b7855, 0.65),
         this.add.text(275, y + 2, `${quest.icon} ${quest.title}`, {
@@ -626,7 +684,7 @@ export class UIScene extends Phaser.Scene {
     ERRAND_IDS.forEach((id, index) => {
       const errand = ERRANDS[id]
       const status = gameStore.state.errands[id].status
-      const y = 414 + index * 35
+      const y = 446 + index * 29
       elements.push(
         this.add.rectangle(842, y + 15, 365, 31, status === "completed" ? 0xdcebd5 : 0xefe5c5, 1).setStrokeStyle(1, 0x8b7855, 0.65),
         this.add.text(672, y + 2, `${errand.icon} ${errand.title}`, { fontFamily: FONT, fontSize: "12px", fontStyle: "bold", color: "#173f38" }),
@@ -635,7 +693,13 @@ export class UIScene extends Phaser.Scene {
     })
   }
 
+  private switchQuestPage(page: "village" | "krok" | "ocean"): void {
+    this.questPage = page
+    this.switchInventoryTab("quests")
+  }
+
   private populateGadgets(elements: Phaser.GameObjects.GameObject[]): void {
+    if (gameStore.state.ocean.hasScuba) elements.push(this.add.text(640, 622, "🤿 Акваланг надет автоматически под водой • воздух не ограничен", { fontFamily: FONT, fontSize: "14px", color: "#345c4d" }).setOrigin(0.5))
     GADGET_IDS.forEach((id, index) => {
       const gadget = GADGETS[id]
       const owned = gameStore.state.ownedGadgets.includes(id)
@@ -648,7 +712,7 @@ export class UIScene extends Phaser.Scene {
         this.add.rectangle(x, y, 360, 88, owned ? 0xdcebd5 : 0xefe5c5, 1).setStrokeStyle(2, equipped ? COLORS.coral : 0x8b7855, 0.8),
         this.add.image(x - 135, y, gadget.assetKey).setDisplaySize(72, 72),
         this.add.text(x - 88, y - 30, `${gadget.icon} ${gadget.name}`, { fontFamily: FONT, fontSize: "15px", fontStyle: "bold", color: "#173f38" }),
-        this.add.text(x - 88, y - 5, owned ? (equipped ? "Экипирован" : "Куплен") : `Цена: ⚙️ ${gadget.price}`, { fontFamily: FONT, fontSize: "13px", color: equipped ? "#b54f3d" : "#4f725d" }),
+        this.add.text(x - 88, y - 5, owned ? (equipped ? "Экипирован" : "Куплен") : `Цена: ⚙️ ${gameStore.shopPrice(gadget.price)}`, { fontFamily: FONT, fontSize: "13px", color: equipped ? "#b54f3d" : "#4f725d" }),
       )
       if (owned && !equipped) {
         elements.push(addButton(this, x + 95, y + 22, 125, 30, "Выбрать", () => {
@@ -893,7 +957,7 @@ export class UIScene extends Phaser.Scene {
     const gadget = GADGETS[id]
     const owned = gameStore.state.ownedGadgets.includes(id)
     const equipped = gameStore.state.equippedGadget === id
-    const canBuy = gameStore.state.gears >= gadget.price
+    const canBuy = gameStore.state.gears >= gameStore.shopPrice(gadget.price)
     const elements: Phaser.GameObjects.GameObject[] = []
     elements.push(
       this.add.rectangle(640, 360, 1280, 720, 0x071b17, 0.76).setInteractive(),
@@ -901,7 +965,7 @@ export class UIScene extends Phaser.Scene {
       this.add.image(470, 335, gadget.assetKey).setDisplaySize(230, 230),
       this.add.text(745, 185, `${gadget.icon} ${gadget.name}`, { fontFamily: FONT, fontSize: "28px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
       this.add.text(745, 280, gadget.description, { fontFamily: FONT, fontSize: "19px", color: "#345c4d", align: "center", wordWrap: { width: 390 } }).setOrigin(0.5),
-      this.add.text(745, 370, owned ? (equipped ? "Устройство экипировано" : "Устройство уже куплено") : `Цена: ⚙️ ${gadget.price}\nВ рюкзаке: ⚙️ ${gameStore.state.gears}`, { fontFamily: FONT, fontSize: "20px", fontStyle: "bold", color: equipped ? "#b54f3d" : "#765134", align: "center" }).setOrigin(0.5),
+      this.add.text(745, 370, owned ? (equipped ? "Устройство экипировано" : "Устройство уже куплено") : `Цена: ⚙️ ${gameStore.shopPrice(gadget.price)}\nВ рюкзаке: ⚙️ ${gameStore.state.gears}`, { fontFamily: FONT, fontSize: "20px", fontStyle: "bold", color: equipped ? "#b54f3d" : "#765134", align: "center" }).setOrigin(0.5),
     )
     if (!owned) {
       elements.push(addButton(this, 745, 480, 260, 58, canBuy ? "Купить" : "Не хватает шестерёнок", () => {
@@ -915,6 +979,93 @@ export class UIScene extends Phaser.Scene {
     }
     elements.push(addButton(this, 875, 562, 120, 40, "Закрыть", () => this.closeModal(), 0x7d8b7f))
     this.modal = this.add.container(0, 0, elements).setDepth(440)
+    this.setModalState(true)
+  }
+
+  private populateOceanJournal(elements: Phaser.GameObjects.GameObject[]): void {
+    const state = gameStore.state
+    const o = state.ocean
+    const steps = [
+      [o.introSeen, "Узнать о затоплении у Совы на площади"],
+      [o.beachVisited, "Исследовать пляж за северным проходом"],
+      [o.hasScuba, o.returnToMole ? "Вернуться к кроту и купить акваланг за 40 шестерёнок" : "Накопить 40 шестерёнок для акваланга"],
+      [o.sharkCleared, "Победить Тигровую акулу в море"],
+      [o.ichthyosaurCleared, "Победить Ихтиозавра во Впадине"],
+      [o.mechanismDisabled, "Отключить приливный механизм и спасти деревню"],
+    ] as const
+    steps.forEach(([done, title], index) => elements.push(this.add.text(280, 448 + index * 27, `${done ? "✓" : "○"} ${title}`, { fontFamily: FONT, fontSize: "16px", color: done ? "#52795b" : "#173f38" })))
+    elements.push(this.add.text(640, 619, `Сейчас: ${oceanObjective(state)} • ⚙️ ${state.gears}`, { fontFamily: FONT, fontSize: "14px", color: "#765134" }).setOrigin(0.5))
+  }
+
+  private openScubaShop(): void {
+    this.closeModal()
+    this.modalLocked = false
+    const state = gameStore.state
+    const owned = state.ocean.hasScuba
+    const available = state.ocean.beachVisited && state.walrusCleared
+    const enough = state.gears >= SCUBA_PRICE
+    const elements: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(640, 360, 1280, 720, 0x071b26, 0.78).setInteractive(),
+      addPanel(this, 300, 115, 680, 500),
+      this.add.text(640, 170, "АКВАЛАНГ ДЯДЮШКИ КРОТА", { fontFamily: FONT, fontSize: "28px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
+      this.add.image(460, 325, "scuba").setDisplaySize(185, 185),
+      this.add.text(745, 295, "Позволяет погружаться в море.\nНадевается автоматически,\nвоздух не заканчивается.\nАктивный гаджет остаётся с тобой.", { fontFamily: FONT, fontSize: "19px", color: "#345c4d", align: "center", lineSpacing: 9 }).setOrigin(0.5),
+      this.add.text(640, 436, owned ? "Акваланг уже куплен" : `Цена: ⚙️ ${SCUBA_PRICE} • В рюкзаке: ⚙️ ${state.gears}`, { fontFamily: FONT, fontSize: "22px", fontStyle: "bold", color: "#765134" }).setOrigin(0.5),
+      addButton(this, 640, 507, 360, 52, owned ? "Отправиться к морю" : !available ? "Сначала посети пляж" : enough ? "Купить за ⚙️ 40" : `Не хватает ⚙️ ${SCUBA_PRICE - state.gears}`, () => {
+        if (owned) { this.closeModal(); return }
+        if (gameStore.purchaseScuba()) {
+          this.openScubaShop()
+          this.showNotification("Акваланг куплен! Теперь можно погружаться в море.", 4200)
+        }
+      }, owned || available && enough ? COLORS.coral : 0x8b958b),
+      addButton(this, 887, 573, 120, 38, "Закрыть", () => this.closeModal(), 0x7d8b7f),
+    ]
+    this.modal = this.add.container(0, 0, elements).setDepth(440)
+    this.setModalState(true)
+  }
+
+  private showOceanIntro(): void {
+    if (gameStore.state.ocean.introSeen || !gameStore.state.walrusCleared) return
+    this.closeModal(true)
+    this.modalLocked = true
+    const elements: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(640, 360, 1280, 720, 0x071b26, 0.76).setInteractive(),
+      addPanel(this, 285, 100, 710, 520),
+      this.add.text(640, 158, "ГЛАВА 4. ТРЕВОЖНЫЙ ПРИЛИВ", { fontFamily: FONT, fontSize: "30px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
+      this.add.image(440, 345, "npc-owl").setDisplaySize(180, 220),
+      this.add.text(735, 325, "Сова-хранительница:\n«Деревню начало затапливать!\nВода приходит со стороны моря.\nОтправляйся к побережью\nи выясни, что случилось».", { fontFamily: FONT, fontSize: "21px", color: "#345c4d", align: "center", lineSpacing: 10 }).setOrigin(0.5),
+      this.add.text(640, 471, "Новый проход находится на севере деревни.", { fontFamily: FONT, fontSize: "18px", color: "#765134" }).setOrigin(0.5),
+      addButton(this, 640, 544, 340, 55, "Исследовать побережье", () => {
+        gameStore.beginOceanIntro()
+        this.closeModal(true)
+        EventBus.emit("ocean-intro-complete")
+        updateGameStatus("chapter-four", "Тревожный прилив. Северный проход к морю открыт.")
+      }, COLORS.coral),
+    ]
+    this.modal = this.add.container(0, 0, elements).setDepth(480)
+    this.setModalState(true)
+  }
+
+  private showOceanCompletion(): void {
+    if (!gameStore.state.ocean.mechanismDisabled) return
+    this.closeModal(true)
+    this.modalLocked = true
+    updateGameStatus("ocean-complete", "Приливный механизм отключён. Деревня спасена от затопления!")
+    const elements: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(640, 360, 1280, 720, 0x071b26, 0.8).setInteractive(),
+      addPanel(this, 285, 100, 710, 520),
+      this.add.text(640, 165, "ДЕРЕВНЯ СПАСЕНА!", { fontFamily: FONT, fontSize: "38px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
+      this.add.text(640, 324, "Приливный механизм остановлен.\nВода отступает от домов и деревьев.\nПолучен знак «Спаситель побережья».", { fontFamily: FONT, fontSize: "24px", color: "#345c4d", align: "center", lineSpacing: 14 }).setOrigin(0.5),
+      this.add.text(640, 437, "Морские пути остаются открыты для исследования.", { fontFamily: FONT, fontSize: "18px", color: "#765134" }).setOrigin(0.5),
+      addButton(this, 485, 542, 270, 56, "Остаться во Впадине", () => this.closeModal(true), COLORS.leaf, "18px"),
+      addButton(this, 795, 542, 270, 56, "Вернуться в деревню", () => {
+        this.closeModal(true)
+        gameStore.setLocation("forest-village", "trench")
+        this.scene.stop("trench")
+        this.scene.start("forest-village")
+      }, COLORS.coral),
+    ]
+    this.modal = this.add.container(0, 0, elements).setDepth(480)
     this.setModalState(true)
   }
 
@@ -940,14 +1091,14 @@ export class UIScene extends Phaser.Scene {
     BUILDING_MATERIAL_IDS.forEach((id, index) => {
       const material = BUILDING_MATERIALS[id]
       const owned = gameStore.state.ownedBuildingMaterials.includes(id)
-      const canBuy = gameStore.state.gears >= material.price
+      const canBuy = gameStore.state.gears >= gameStore.shopPrice(material.price)
       const x = 470 + index * 340
       elements.push(
         this.add.rectangle(x, 385, 300, 300, owned ? 0xdcebd5 : 0xefe5c5, 1).setStrokeStyle(3, owned ? COLORS.leaf : 0x8b7855, 0.8),
         this.add.text(x, 285, material.icon, { fontFamily: FONT, fontSize: "62px" }).setOrigin(0.5),
         this.add.text(x, 340, material.name, { fontFamily: FONT, fontSize: "19px", fontStyle: "bold", color: "#173f38", align: "center" }).setOrigin(0.5),
         this.add.text(x, 407, material.description, { fontFamily: FONT, fontSize: "15px", color: "#345c4d", align: "center", wordWrap: { width: 250 } }).setOrigin(0.5),
-        this.add.text(x, 485, owned ? "Куплено" : `Цена: ⚙️ ${material.price}`, { fontFamily: FONT, fontSize: "18px", fontStyle: "bold", color: owned ? "#4f725d" : "#765134" }).setOrigin(0.5),
+        this.add.text(x, 485, owned ? "Куплено" : `Цена: ⚙️ ${gameStore.shopPrice(material.price)}`, { fontFamily: FONT, fontSize: "18px", fontStyle: "bold", color: owned ? "#4f725d" : "#765134" }).setOrigin(0.5),
       )
       if (!owned) {
         elements.push(addButton(this, x, 545, 230, 46, canBuy ? "Купить комплект" : "Не хватает шестерёнок", () => {
@@ -977,13 +1128,13 @@ export class UIScene extends Phaser.Scene {
         fontStyle: "bold",
         color: "#173f38",
       }).setOrigin(0.5),
-      this.add.text(640, 192, `Любой набор: 2 овоща за ⚙️ 1  •  В рюкзаке ⚙️ ${gameStore.state.gears}`, {
+      this.add.text(640, 192, `Любой набор: 2 овоща за ⚙️ ${gameStore.shopPrice(PRODUCE.tomato.price)}  •  В рюкзаке ⚙️ ${gameStore.state.gears}`, {
         fontFamily: FONT,
         fontSize: "17px",
         color: "#4f725d",
       }).setOrigin(0.5),
     )
-    PRODUCE_IDS.forEach((id, index) => {
+    FARM_PRODUCE_IDS.forEach((id, index) => {
       const produce = PRODUCE[id]
       const x = 470 + index * 340
       elements.push(
@@ -992,9 +1143,9 @@ export class UIScene extends Phaser.Scene {
         this.add.text(x, 335, produce.name, { fontFamily: FONT, fontSize: "21px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
         this.add.text(x, 405, produce.description, { fontFamily: FONT, fontSize: "15px", color: "#345c4d", align: "center", wordWrap: { width: 250 } }).setOrigin(0.5),
         this.add.text(x, 478, `В рюкзаке: ${produce.icon} ${gameStore.state.produceAmmo[id]}`, { fontFamily: FONT, fontSize: "18px", fontStyle: "bold", color: "#765134" }).setOrigin(0.5),
-        addButton(this, x, 540, 230, 46, gameStore.state.gears >= produce.price ? "Купить 2 за ⚙️ 1" : "Не хватает шестерёнок", () => {
+        addButton(this, x, 540, 230, 46, gameStore.state.gears >= gameStore.shopPrice(produce.price) ? `Купить 2 за ⚙️ ${gameStore.shopPrice(produce.price)}` : "Не хватает шестерёнок", () => {
           this.buyProduce(id)
-        }, gameStore.state.gears >= produce.price ? COLORS.coral : 0x8b958b),
+        }, gameStore.state.gears >= gameStore.shopPrice(produce.price) ? COLORS.coral : 0x8b958b),
       )
     })
     elements.push(
@@ -1007,6 +1158,56 @@ export class UIScene extends Phaser.Scene {
 
   private buyProduce(id: ProduceId): void {
     if (gameStore.purchaseProduce(id)) this.openProduceShop()
+  }
+
+  private openKrokMarket(): void {
+    this.closeModal()
+    this.modalLocked = false
+    const elements: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(640, 360, 1280, 720, 0x071b17, 0.76).setInteractive(),
+      addPanel(this, 260, 100, 760, 525),
+      this.add.text(640, 150, "РЫНОК ГОРОДА КРОКОВ", { fontFamily: FONT, fontSize: "29px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
+      this.add.text(640, 195, `В рюкзаке ⚙️ ${gameStore.state.gears}  •  R — переключить оружие`, { fontFamily: FONT, fontSize: "17px", color: "#4f725d" }).setOrigin(0.5),
+    ]
+    KROK_MARKET_PRODUCE_IDS.forEach((id, index) => {
+      const item = PRODUCE[id]
+      const x = 470 + index * 340
+      elements.push(
+        this.add.rectangle(x, 390, 300, 310, 0xefe5c5).setStrokeStyle(3, 0x8b7855, 0.8),
+        this.add.image(x, 292, id).setDisplaySize(105, 105),
+        this.add.text(x, 367, item.name, { fontFamily: FONT, fontSize: "21px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
+        this.add.text(x, 415, `Урон: ${item.damage}  •  ${item.packSize} шт. за ⚙️ ${gameStore.shopPrice(item.price)}`, { fontFamily: FONT, fontSize: "16px", color: "#345c4d" }).setOrigin(0.5),
+        this.add.text(x, 471, `Запас: ${gameStore.state.produceAmmo[id]}`, { fontFamily: FONT, fontSize: "17px", color: "#765134" }).setOrigin(0.5),
+        addButton(this, x, 535, 230, 46, gameStore.state.gears >= gameStore.shopPrice(item.price) ? "Купить набор" : "Не хватает шестерёнок", () => {
+          if (gameStore.purchaseProduce(id)) this.openKrokMarket()
+        }, gameStore.state.gears >= gameStore.shopPrice(item.price) ? COLORS.coral : 0x8b958b),
+      )
+    })
+    elements.push(addButton(this, 930, 591, 120, 38, "Закрыть", () => this.closeModal(), 0x7d8b7f))
+    this.modal = this.add.container(0, 0, elements).setDepth(440)
+    this.setModalState(true)
+  }
+
+  private openKrokPotions(): void {
+    this.closeModal()
+    this.modalLocked = false
+    const { ready } = healingPotionState(gameStore.state.healingPotionReadyAt)
+    const missing = 3 - ready
+    const cost = missing * gameStore.shopPrice(2)
+    const affordable = missing > 0 && gameStore.state.gears >= cost
+    const elements: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(640, 360, 1280, 720, 0x071b17, 0.76).setInteractive(),
+      addPanel(this, 300, 120, 680, 470),
+      this.add.text(640, 166, "АПТЕКА ГОРОДА КРОКОВ", { fontFamily: FONT, fontSize: "29px", fontStyle: "bold", color: "#173f38" }).setOrigin(0.5),
+      this.add.text(640, 270, `🧪 Готово: ${ready}/3   •   ⚙️ ${gameStore.state.gears}`, { fontFamily: FONT, fontSize: "25px", fontStyle: "bold", color: "#345c4d" }).setOrigin(0.5),
+      this.add.text(640, 348, missing ? `Пополнить ${missing} зелья за ⚙️ ${cost}.\nЗдоровье не меняется, новые заряды готовы сразу.` : "Все три зелья готовы — пополнение не требуется.", { fontFamily: FONT, fontSize: "19px", color: "#4f725d", align: "center" }).setOrigin(0.5),
+      addButton(this, 640, 462, 300, 54, affordable ? "Пополнить зелья" : missing ? "Не хватает шестерёнок" : "Запас полный", () => {
+        if (gameStore.refillHealingPotions()) this.openKrokPotions()
+      }, affordable ? COLORS.coral : 0x8b958b),
+      addButton(this, 905, 550, 110, 37, "Закрыть", () => this.closeModal(), 0x7d8b7f),
+    ]
+    this.modal = this.add.container(0, 0, elements).setDepth(440)
+    this.setModalState(true)
   }
 
   private showMountainCompletion(): void {
@@ -1117,6 +1318,33 @@ export class UIScene extends Phaser.Scene {
     updateGameStatus("chapter-three", "Глава 3. В деревне начинается снегопад.")
   }
 
+  private showWalrusCompletion(): void {
+    this.closeModal(true)
+    this.modalLocked = true
+    updateGameStatus("walrus-complete", "Морж побеждён. Началась четвёртая глава, снегопад завершился.")
+    const character = gameStore.state.character ?? CHARACTERS[0]!
+    const elements: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(640, 360, 1280, 720, 0x071b26, 0.84).setInteractive(),
+      addPanel(this, 285, 92, 710, 536, COLORS.cream),
+      this.add.text(640, 145, "МОРЖ ПОБЕЖДЁН!", { fontFamily: FONT, fontSize: "36px", fontStyle: "bold", color: "#173f38", stroke: "#9cf4ff", strokeThickness: 4 }).setOrigin(0.5),
+      this.add.image(455, 350, character.assetKey).setDisplaySize(145, 190),
+      this.add.text(745, 277, "❄️  🏅", { fontFamily: FONT, fontSize: "46px" }).setOrigin(0.5),
+      this.add.text(745, 380, "Тронный зал освобождён. Получен Знак Ледяного дворца.\nСнегопад закончился. Пора вернуться в деревню — там ждут новости.", { fontFamily: FONT, fontSize: "20px", fontStyle: "bold", color: "#345c4d", align: "center", lineSpacing: 8, wordWrap: { width: 440 } }).setOrigin(0.5),
+      addButton(this, 505, 548, 270, 58, "Остаться во дворце", () => {
+        this.closeModal(true)
+        updateGameStatus("ice-throne", "Морж побеждён. Можно исследовать дворец.")
+      }, COLORS.leaf, "19px"),
+      addButton(this, 800, 548, 270, 58, "В деревню", () => {
+        this.closeModal(true)
+        gameStore.setLocation("forest-village", "ice-throne")
+        this.scene.stop("ice-throne")
+        this.scene.start("forest-village")
+      }, COLORS.coral),
+    ]
+    this.modal = this.add.container(0, 0, elements).setDepth(480)
+    this.setModalState(true)
+  }
+
   private openPause(): void {
     if (this.modal || this.pauseOpen) return
     this.pauseOpen = true
@@ -1219,16 +1447,7 @@ export class UIScene extends Phaser.Scene {
     this.modal?.destroy(true)
     this.modal = null
     saveManager.startNewGame()
-    this.scene.stop("forest-clearing")
-    this.scene.stop("forest-village")
-    this.scene.stop("wild-forest")
-    this.scene.stop("mountain-hollow")
-    this.scene.stop("bird-pass")
-    this.scene.stop("forest-mine")
-    this.scene.stop("melon-farm")
-    this.scene.stop("mole-shop")
-    this.scene.stop("hero-home")
-    this.scene.stop("beaver-house")
+    WORLD_SCENES.forEach((key) => this.scene.stop(key))
     this.scene.stop()
     this.scene.start("character-select")
   }

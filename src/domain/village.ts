@@ -96,11 +96,20 @@ export const HOME_LOCATIONS: Record<CharacterId, LocationId> = {
 }
 
 export const LOCATION_LABELS: Record<LocationId, string> = {
+  beach: "ПЛЯЖ",
+  sea: "МОРЕ",
+  trench: "ВПАДИНА",
   "forest-clearing": "ЛЕСНАЯ ОПУШКА",
   "forest-village": "ДЕРЕВНЯ В ЛЕСУ",
   "wild-forest": "ДИКИЙ ЛЕС",
   "mountain-hollow": "ГОРНАЯ ЛОЩИНА",
   "bird-pass": "ПТИЧИЙ ПЕРЕВАЛ",
+  "snow-valley": "СНЕЖНАЯ ДОЛИНА",
+  "snow-city": "СНЕЖНЫЙ ГОРОД",
+  "krok-outskirts": "ОКРЕСТНОСТИ ГОРОДА КРОКОВ",
+  "krok-city": "ГОРОД КРОКОВ",
+  "ice-palace": "ЛЕДЯНОЙ ДВОРЕЦ",
+  "ice-throne": "ТРОННЫЙ ЗАЛ",
   "forest-mine": "ЛЕСНАЯ ШАХТА",
   "melon-farm": "ФЕРМА ТЁТИ ДЫНИ",
   "mole-shop": "МАГАЗИН КРОТА",

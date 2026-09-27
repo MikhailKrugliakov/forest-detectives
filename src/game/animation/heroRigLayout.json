@@ -1,0 +1,7 @@
+{
+  "hero-wolf": { "heights": [109, 105, 104, 103], "legRatio": 0.29, "hipSpread": 8 },
+  "hero-fox": { "heights": [108.5, 103, 103, 108], "legRatio": 0.29, "hipSpread": 7 },
+  "hero-rabbit": { "heights": [99, 96, 88, 86], "legRatio": 0.23, "hipSpread": 7 },
+  "hero-watermelon": { "heights": [83, 81.5, 82, 82], "legRatio": 0.22, "hipSpread": 7 },
+  "hero-sheepwolf": { "heights": [110.5, 112.5, 105, 108], "legRatio": 0.29, "hipSpread": 8 }
+}

@@ -1,0 +1,30 @@
+{
+  "note": "Final background cleanup overrides source-manifest packing for these keys. Keep row order unchanged.",
+  "records": [
+    {
+      "key": "robot-sparrow",
+      "chroma": "exec-f43f2508-c008-4cda-b8d7-d9a4d3fe26ff.png",
+      "swapSides": false,
+      "profile": "magenta-wide"
+    },
+    {
+      "key": "hero-sheepwolf",
+      "chroma": "exec-5e96a29e-6425-4323-8c83-e62ae82da509.png",
+      "swapSides": false,
+      "profile": "magenta-wide"
+    },
+    {
+      "key": "robot-hare",
+      "chroma": "exec-9bd57e12-e511-4e08-b56f-309810b087b6.png",
+      "swapSides": true,
+      "profile": "magenta-wide"
+    },
+    {
+      "key": "hero-fox",
+      "chroma": "exec-e7012566-e6a1-4f85-adf5-e646cd0d9666.png",
+      "profile": "green"
+    }
+  ],
+  "greenBackgroundPrompt": "Change ONLY background from magenta to flat PURE GREEN #00FF00. Preserve every character pixel and all 96 poses in the exact same eight columns and twelve rows. The purple scarf MUST remain purple and complete. All empty gaps BETWEEN LEGS, between arms and body, around ears and through equipment must become green too, NOT leftover magenta. Do not paint green on the character. No gradient, shadows or text. Same 1024x1536 canvas.",
+  "packing": "scripts/pack-animation-sheet.cjs with CHROMA_PROFILE per record; final scripts/compress-animation-atlases.cjs keeps palette alpha."
+}

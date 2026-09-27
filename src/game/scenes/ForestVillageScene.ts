@@ -3,11 +3,13 @@ import { updateGameStatus } from "../../accessibility"
 import { CHARACTERS } from "../../domain/characters"
 import { gameStore } from "../../domain/GameStore"
 import { ERRANDS } from "../../domain/village"
+import { HERO_START_SPAWNS, VILLAGE_ENTRY_SPAWNS, VILLAGE_SQUARE, VILLAGE_SEA_PORTAL, VILLAGE_OCEAN_OWL } from "../../domain/villageLayout"
 import type { CharacterId, ErrandId, LocationId, QuestId, SurfaceResourceId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { FONT } from "../ui"
 import { addResourceNode, collectResourceNode, resourceIdFromObjectType, resourcePrompt, type RuntimeResourceNode } from "../WorldResources"
 import { BaseWorldScene } from "./BaseWorldScene"
+import { NpcController } from "../animation/NpcController"
 
 type VillageKind = "quest" | "errand" | "hero" | "portal" | "task" | "materials" | "resource"
 
@@ -56,31 +58,16 @@ const PORTAL_LABELS: Partial<Record<LocationId, string>> = {
   "sheepwolf-home": "ДОМ ОВЦЕВОЛКА",
   "wild-forest": "ДИКИЙ ЛЕС →",
   "melon-farm": "ФЕРМА ТЁТИ ДЫНИ →",
-}
-
-const VILLAGE_ENTRY_SPAWNS: Partial<Record<LocationId, { x: number; y: number }>> = {
-  "wild-forest": { x: 2180, y: 455 },
-  "melon-farm": { x: 1440, y: 1390 },
-  "mole-shop": { x: 1360, y: 805 },
-  "beaver-house": { x: 970, y: 1080 },
-  "wolf-home": { x: 390, y: 620 },
-  "fox-home": { x: 2040, y: 765 },
-  "rabbit-home": { x: 970, y: 1430 },
-  "sheepwolf-home": { x: 2100, y: 1370 },
-}
-
-const HERO_START_SPAWNS: Record<CharacterId, { x: number; y: number }> = {
-  wolf: { x: 390, y: 620 },
-  fox: { x: 2040, y: 765 },
-  rabbit: { x: 970, y: 1430 },
-  sheepwolf: { x: 2100, y: 1370 },
-  watermelon: { x: 1440, y: 1390 },
+  "snow-valley": "СНЕЖНАЯ ДОЛИНА ←",
 }
 
 export class ForestVillageScene extends BaseWorldScene {
   private objects: VillageObject[] = []
   private nearest: VillageObject | null = null
   private lastPrompt = ""
+  private residents!: NpcController
+  private oceanPassageCreated = false
+  private villageBackground!: Phaser.GameObjects.Image
 
   constructor() {
     super("forest-village")
@@ -95,16 +82,17 @@ export class ForestVillageScene extends BaseWorldScene {
     if (gameStore.state.chapter === 1) gameStore.beginVillageChapter()
     else gameStore.setLocation("forest-village")
 
+    this.oceanPassageCreated = false
     this.objects = []
     this.nearest = null
     this.lastPrompt = ""
     this.cameras.main.setBackgroundColor("#6f9e58")
-    this.add.image(-1200, 800, "forest-village-west-bg").setDisplaySize(2400, 1600).setDepth(0)
-    this.add.image(1200, 800, "forest-village-bg").setDisplaySize(2400, 1600).setDepth(0)
+    this.villageBackground = this.add.image(0, 800, this.villageTexture()).setDisplaySize(4800, 1600).setDepth(0)
     const entryFrom = gameStore.state.entryFrom
-    const spawn = entryFrom === "forest-clearing"
+    const oceanArrival = gameStore.state.walrusCleared && !gameStore.state.ocean.introSeen
+    const spawn = oceanArrival ? VILLAGE_SQUARE : entryFrom === "forest-clearing"
       ? HERO_START_SPAWNS[character.id]
-      : (entryFrom ? VILLAGE_ENTRY_SPAWNS[entryFrom] : undefined) ?? { x: 1200, y: 1010 }
+      : (entryFrom ? VILLAGE_ENTRY_SPAWNS[entryFrom] : undefined) ?? VILLAGE_SQUARE
     this.setupWorld(
       character,
       4800,
@@ -117,7 +105,11 @@ export class ForestVillageScene extends BaseWorldScene {
       0,
     )
     this.loadMapCollisions("forest-village-map")
+    this.residents = new NpcController(this, this.player, "forest-village-map")
     this.createMapObjects()
+    if (gameStore.state.ocean.introSeen) this.createOceanPassage()
+    EventBus.on("ocean-intro-complete", this.createOceanPassage, this)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => EventBus.off("ocean-intro-complete", this.createOceanPassage, this))
     this.add.text(-180, 790, "←  ЗАПАДНЫЙ РАЙОН", {
       fontFamily: FONT,
       fontSize: "18px",
@@ -129,18 +121,27 @@ export class ForestVillageScene extends BaseWorldScene {
     // Accessibility reports the location as ready only after controls, portals,
     // and the debug/test bridge have been attached by setupWorld().
     updateGameStatus(
-      gameStore.state.chapter === 3 ? "chapter-three" : "forest-village",
+      gameStore.state.chapter === 4 ? "chapter-four" : gameStore.state.chapter === 3 ? "chapter-three" : "forest-village",
       gameStore.state.chapter === 3
         ? `Глава 3. В расширенной деревне идёт снег. Герой: ${character.name}.`
-        : `Расширенная деревня. Герой: ${character.name}.`,
+        : gameStore.state.chapter === 4
+          ? `Глава 4. ${gameStore.state.ocean.mechanismDisabled ? "Деревня спасена от затопления" : "Деревню затапливает"}. Герой: ${character.name}.`
+          : `Расширенная деревня. Герой: ${character.name}.`,
     )
     this.cameras.main.fadeIn(300, 23, 63, 56)
 
     if (!this.scene.isActive("ui")) this.scene.launch("ui")
     this.time.delayedCall(350, () => {
+      if (oceanArrival) {
+        this.residents.talk("robot-sweep", 6000)
+        EventBus.emit(GameEvents.oceanIntro)
+        return
+      }
       EventBus.emit(
         GameEvents.showMessage,
-        gameStore.state.villageSaved
+        gameStore.state.walrusCleared && !gameStore.state.ocean.mechanismDisabled
+          ? "Вода подступает к окраинам. Северная дорога ведёт к морю."
+          : gameStore.state.villageSaved
           ? "В деревне снова спокойно. Магазин и все дома остаются открыты!"
           : "Исследуй дома и новый западный район, помоги соседям и загляни к дядюшке Кроту.",
         5200,
@@ -163,8 +164,9 @@ export class ForestVillageScene extends BaseWorldScene {
     mapObjects.forEach((object) => {
       const id = object.name
       const type = object.type
-      const x = object.x ?? 0
-      const y = object.y ?? 0
+      const storyOwl = id === "robot-sweep" && gameStore.state.walrusCleared
+      const x = storyOwl ? VILLAGE_OCEAN_OWL.x : object.x ?? 0
+      const y = storyOwl ? VILLAGE_OCEAN_OWL.y : object.y ?? 0
       if (!id || !type || type === "spawn") return
 
       const resourceId = resourceIdFromObjectType(type)
@@ -176,15 +178,17 @@ export class ForestVillageScene extends BaseWorldScene {
 
       if (type === "quest" && QUEST_NPCS[id]) {
         const npc = QUEST_NPCS[id]
-        this.addNpc(npc.asset, npc.label, x, y, id === "robot-sweep" ? 150 : 135)
-        this.objects.push({ id, kind: "quest", x, y, label: npc.label })
+        const target: VillageObject = { id, kind: "quest", x, y, label: npc.label }
+        this.addNpc(npc.asset, npc.label, x, y, id === "robot-sweep" ? 150 : 135, target)
+        this.objects.push(target)
         return
       }
       if (type === "errand" && id in ERRAND_NPCS) {
         const errandId = id as ErrandId
         const npc = ERRAND_NPCS[errandId]
-        this.addNpc(npc.asset, npc.label, x, y, 135)
-        this.objects.push({ id, kind: "errand", x, y, label: npc.label })
+        const target: VillageObject = { id, kind: "errand", x, y, label: npc.label }
+        this.addNpc(npc.asset, npc.label, x, y, 135, target)
+        this.objects.push(target)
         return
       }
       if (type === "hero") {
@@ -192,12 +196,14 @@ export class ForestVillageScene extends BaseWorldScene {
         if (heroId === selected || heroId === "watermelon") return
         const hero = CHARACTERS.find(({ id: candidate }) => candidate === heroId)
         if (!hero) return
-        this.addNpc(hero.assetKey, hero.name, x, y, 105)
-        this.objects.push({ id, kind: "hero", x, y, label: hero.name })
+        const target: VillageObject = { id, kind: "hero", x, y, label: hero.name }
+        this.addNpc(hero.assetKey, hero.name, x, y, 105, target)
+        this.objects.push(target)
         return
       }
       if (type === "portal") {
         const location = id as LocationId
+        if (location === "snow-valley" && !gameStore.state.birdPassCleared) return
         const label = PORTAL_LABELS[location]
         if (!label) return
         this.addPortalLabel(x, y, label)
@@ -241,10 +247,10 @@ export class ForestVillageScene extends BaseWorldScene {
     })
   }
 
-  private addNpc(asset: string, label: string, x: number, y: number, width: number): void {
+  private addNpc(asset: string, label: string, x: number, y: number, width: number, target: VillageObject): void {
     const image = this.add.image(x, y, asset).setDisplaySize(width, width * 1.35).setDepth(y + 20)
     if (asset === "hero-watermelon") image.setDisplaySize(112, 125)
-    this.add
+    const title = this.add
       .text(x, y + width * 0.82, label, {
         fontFamily: FONT,
         fontSize: "16px",
@@ -255,9 +261,7 @@ export class ForestVillageScene extends BaseWorldScene {
       })
       .setOrigin(0.5)
       .setDepth(y + 40)
-    const blocker = this.add.rectangle(x, y + width * 0.28, width * 0.42, width * 0.3, 0x000000, 0)
-    this.physics.add.existing(blocker, true)
-    this.physics.add.collider(this.player, blocker)
+    this.residents.add(target.id, image, title, target)
   }
 
   private addPortalLabel(x: number, y: number, label: string): void {
@@ -300,6 +304,7 @@ export class ForestVillageScene extends BaseWorldScene {
   }
 
   private interact(object: VillageObject): void {
+    if (["quest", "errand", "hero"].includes(object.kind)) this.residents.talk(object.id)
     if (object.kind === "quest") {
       const deliveryTarget = object.id === "lost-letters" ? "squirrel" : object.id === "robot-sweep" ? "owl" : null
       if (
@@ -375,6 +380,18 @@ export class ForestVillageScene extends BaseWorldScene {
   }
 
   private enterPortal(location: LocationId): void {
+    if (location === "beach") {
+      if (gameStore.canEnterOceanLocation("beach")) this.transitionTo("beach", "beach")
+      return
+    }
+    if (location === "snow-valley") {
+      if (!gameStore.state.birdPassCleared || gameStore.state.chapter < 3) {
+        EventBus.emit(GameEvents.showMessage, "Путь откроется в третьей главе.", 2200)
+        return
+      }
+      this.transitionTo("snow-valley", location)
+      return
+    }
     if (location === "wild-forest") {
       if (!gameStore.hasAcceptedQuest()) {
         EventBus.emit(GameEvents.showMessage, "Сначала возьми хотя бы одно основное задание.", 2800)
@@ -400,6 +417,24 @@ export class ForestVillageScene extends BaseWorldScene {
       return
     }
     if (location.endsWith("-home")) this.transitionTo("hero-home", location)
+  }
+
+  private createOceanPassage(): void {
+    if (this.oceanPassageCreated || !gameStore.state.ocean.introSeen) return
+    this.oceanPassageCreated = true
+    // This continuous painted panorama preserves the village layout and adds
+    // the lane surveyed in VILLAGE_SEA_PATH; no flat road is drawn over houses.
+    this.villageBackground.setTexture(this.villageTexture()).setDisplaySize(4800, 1600)
+    const { x, y } = VILLAGE_SEA_PORTAL
+    this.addPortalLabel(x, y + 58, "К МОРЮ ↑")
+    this.objects.push({ id: "beach", kind: "portal", x, y, label: "К морю ↑" })
+  }
+
+  private villageTexture(): string {
+    // Floodwater is painted around tree trunks and preserves all traversable
+    // paths; a flat overlay would incorrectly cover roofs and tree canopies.
+    if (gameStore.state.walrusCleared && !gameStore.state.ocean.mechanismDisabled) return "village-flood-bg"
+    return gameStore.state.ocean.introSeen ? "village-coastal-bg" : "forest-village-bg"
   }
 
   private taskDone(id: ErrandId, targetId: string): boolean {

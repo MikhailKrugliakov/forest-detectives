@@ -1,7 +1,8 @@
 import { GameStore, gameStore } from "./GameStore"
-import type { SaveEnvelope, SaveSlotId } from "./types"
+import { emptyOceanState } from "./ocean"
+import type { GameSession, SaveEnvelope, SaveSlotId } from "./types"
 
-export const SAVE_VERSION = 2 as const
+export const SAVE_VERSION = 5 as const
 export const SAVE_SLOTS: readonly SaveSlotId[] = ["auto", "slot-1", "slot-2", "slot-3"]
 export const MANUAL_SAVE_SLOTS: readonly SaveSlotId[] = ["slot-1", "slot-2", "slot-3"]
 
@@ -34,8 +35,11 @@ function defaultStorage(): StorageLike {
 }
 
 export class SaveManager {
-  private readonly prefix = "forest-detectives:save:v2:"
-  private readonly legacyPrefix = "forest-detectives:save:v1:"
+  private readonly prefix = "forest-detectives:save:v5:"
+  private readonly legacyPrefixV4 = "forest-detectives:save:v4:"
+  private readonly legacyPrefixV3 = "forest-detectives:save:v3:"
+  private readonly legacyPrefixV2 = "forest-detectives:save:v2:"
+  private readonly legacyPrefixV1 = "forest-detectives:save:v1:"
   private unsubscribe: (() => void) | null = null
   private previousTransitionKey = ""
   private suspended = false
@@ -48,7 +52,7 @@ export class SaveManager {
   bindAutosave(): void {
     if (this.unsubscribe) return
     this.unsubscribe = this.store.subscribe((state) => {
-      const transitionKey = [state.character?.id ?? "", state.chapter, state.location, state.entryFrom ?? "", state.difficulty].join("|")
+      const transitionKey = this.transitionKey(state)
       if (!this.previousTransitionKey) {
         this.previousTransitionKey = transitionKey
         return
@@ -76,6 +80,7 @@ export class SaveManager {
         gears: state.gears,
         mountainCleared: state.mountainCleared,
         birdPassCleared: state.birdPassCleared,
+        walrusCleared: state.walrusCleared,
       },
       session: this.store.exportSerializedSession(),
     }
@@ -94,7 +99,7 @@ export class SaveManager {
     const restored = this.store.restoreSerializedSession(envelope.session)
     this.suspended = false
     const state = this.store.state
-    this.previousTransitionKey = [state.character?.id ?? "", state.chapter, state.location, state.entryFrom ?? "", state.difficulty].join("|")
+    this.previousTransitionKey = this.transitionKey(state)
     if (restored && envelope.version === SAVE_VERSION) this.save(slot)
     return restored
       ? { ok: true, message: "Сохранение загружено.", envelope }
@@ -103,30 +108,55 @@ export class SaveManager {
 
   read(slot: SaveSlotId): SaveEnvelope | null {
     try {
-      const raw = this.storage.getItem(this.key(slot)) ?? this.storage.getItem(this.legacyKey(slot))
+      const raw = this.storage.getItem(this.key(slot))
+        ?? this.storage.getItem(this.legacyKeyV4(slot))
+        ?? this.storage.getItem(this.legacyKeyV3(slot))
+        ?? this.storage.getItem(this.legacyKeyV2(slot))
+        ?? this.storage.getItem(this.legacyKeyV1(slot))
       if (!raw) return null
       const envelope = JSON.parse(raw) as Partial<Omit<SaveEnvelope, "version">> & { version?: number }
       if (
-        (envelope.version !== SAVE_VERSION && envelope.version !== 1) ||
+        (envelope.version !== SAVE_VERSION && envelope.version !== 4 && envelope.version !== 3 && envelope.version !== 2 && envelope.version !== 1) ||
         envelope.slot !== slot ||
         typeof envelope.savedAt !== "string" ||
         !envelope.summary ||
         !envelope.session
       ) return null
-      if (envelope.version === 1) {
+      if (envelope.version !== SAVE_VERSION) {
         const session = envelope.session as SaveEnvelope["session"]
-        session.difficulty ??= "hard"
-        session.birdPassEnemyDefeats ??= 0
-        session.birdPassCleared ??= false
-        session.birdPassRewardClaimed ??= false
-        session.chapterTwoCompleted ??= false
+        if (envelope.version === 1) {
+          session.difficulty ??= "hard"
+          session.birdPassEnemyDefeats ??= 0
+          session.birdPassCleared ??= false
+          session.birdPassRewardClaimed ??= false
+          session.chapterTwoCompleted ??= false
+        }
+        if (envelope.version < 3) {
+          session.snowValleyEnemyDefeats ??= 0
+          session.snowCityEnemyDefeats ??= 0
+          session.icePalaceEnemyDefeats ??= 0
+          session.walrusCleared ??= false
+          session.walrusRewardClaimed ??= false
+        }
+        session.ocean = { ...emptyOceanState(), ...session.ocean }
+        session.krokSiegeCleared ??= false
+        session.krokSiegeRewardClaimed ??= false
+        session.krokErrands ??= {
+          rivets: { status: "available", completedTargets: [] },
+          tablets: { status: "available", completedTargets: [] },
+          medicine: { status: "available", completedTargets: [] },
+          "street-lamps": { status: "available", completedTargets: [] },
+        }
+        session.princeQuest ??= { status: "available" }
+        session.produceAmmo = Object.assign({ tomato: 0, cucumber: 0, "dense-tomato": 0, "large-cucumber": 0 }, session.produceAmmo)
         return {
           ...envelope,
           version: SAVE_VERSION,
           summary: {
             ...envelope.summary,
-            difficulty: "hard",
-            birdPassCleared: false,
+            difficulty: session.difficulty,
+            birdPassCleared: session.birdPassCleared,
+            walrusCleared: session.walrusCleared,
           },
           session,
         } as SaveEnvelope
@@ -140,7 +170,10 @@ export class SaveManager {
   remove(slot: SaveSlotId): void {
     try {
       this.storage.removeItem(this.key(slot))
-      this.storage.removeItem(this.legacyKey(slot))
+      this.storage.removeItem(this.legacyKeyV4(slot))
+      this.storage.removeItem(this.legacyKeyV3(slot))
+      this.storage.removeItem(this.legacyKeyV2(slot))
+      this.storage.removeItem(this.legacyKeyV1(slot))
     } catch {
       // UI will simply continue showing the slot if removal is unavailable.
     }
@@ -156,15 +189,34 @@ export class SaveManager {
     this.store.reset()
     this.suspended = false
     const state = this.store.state
-    this.previousTransitionKey = ["", state.chapter, state.location, "", state.difficulty].join("|")
+    this.previousTransitionKey = this.transitionKey(state)
+  }
+
+  private transitionKey(state: Readonly<GameSession>): string {
+    return [state.character?.id ?? "", state.chapter, state.location, state.entryFrom ?? "", state.difficulty,
+      state.birdPassCleared, state.walrusCleared, JSON.stringify(state.ocean),
+      state.rewardedGearSources.filter((source) => source.startsWith("beach-scrap:")).join(","),
+    ].join("|")
+  }
+
+  private legacyKeyV4(slot: SaveSlotId): string {
+    return `${this.legacyPrefixV4}${slot}`
   }
 
   private key(slot: SaveSlotId): string {
     return `${this.prefix}${slot}`
   }
 
-  private legacyKey(slot: SaveSlotId): string {
-    return `${this.legacyPrefix}${slot}`
+  private legacyKeyV2(slot: SaveSlotId): string {
+    return `${this.legacyPrefixV2}${slot}`
+  }
+
+  private legacyKeyV3(slot: SaveSlotId): string {
+    return `${this.legacyPrefixV3}${slot}`
+  }
+
+  private legacyKeyV1(slot: SaveSlotId): string {
+    return `${this.legacyPrefixV1}${slot}`
   }
 }
 

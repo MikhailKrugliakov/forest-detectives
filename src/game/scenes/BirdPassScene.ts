@@ -19,6 +19,7 @@ import { calculateAttackDamage } from "../../domain/rules"
 import { BIRD_PASS_ROADS } from "../../domain/roads"
 import type { DifficultyId, EnemyDefinition, ProduceId } from "../../domain/types"
 import { CombatController } from "../CombatController"
+import { actorFor } from "../animation/AnimatedActor"
 import { EventBus, GameEvents } from "../EventBus"
 import { RoadCollisionController } from "../RoadCollisionController"
 import { addResourceNode, collectResourceNode, resourceIdFromObjectType, resourcePrompt, type RuntimeResourceNode } from "../WorldResources"
@@ -111,14 +112,14 @@ export class BirdPassScene extends BaseWorldScene {
       : BIRD_PASS_ENTRY
     this.setupWorld(character, BIRD_PASS_WIDTH, BIRD_PASS_HEIGHT, spawn.x, spawn.y, character.id === "watermelon" ? 96 : 102, character.id === "watermelon" ? 112 : 140)
     this.roadCollision.track(this.player, true)
-    this.obstacles = this.loadMapCollisions("bird-pass-map")
+    this.obstacles = this.loadMapCollisions("bird-pass-map", BIRD_PASS_ROADS)
     this.createFeatherTexture()
     this.createPylons()
     this.createEnemies()
     this.createPickups()
     this.createResources()
     this.createLabels()
-    this.combat.arm(this.time.now)
+    this.combat.arm(this.combat.now)
     EventBus.on("debug-damage-enemy", this.handleDebugDamageEnemy, this)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       EventBus.off("debug-damage-enemy", this.handleDebugDamageEnemy, this)
@@ -139,11 +140,12 @@ export class BirdPassScene extends BaseWorldScene {
 
   update(time: number, delta: number): void {
     if (!this.player?.body || this.returningToVillage) return
+    const stableDelta = Math.min(delta, 50)
+    this.updateWorldInput(stableDelta)
+    time = this.combat.advance(delta, this.modalOpen)
     const playerOnRoad = this.roadCollision.constrain(this.player)
     const status = document.querySelector<HTMLElement>("#game-status")
     if (status) status.dataset.playerOnRoad = String(playerOnRoad)
-    const stableDelta = Math.min(delta, 50)
-    this.updateWorldInput(stableDelta)
     if (this.modalOpen) return
     this.syncDifficulty()
     this.updateEnemies(time, stableDelta)
@@ -227,6 +229,7 @@ export class BirdPassScene extends BaseWorldScene {
           : [112, 88]
     sprite.setDisplaySize(size[0], size[1]).setDepth(definition.y + 20).setCollideWorldBounds(true)
     this.combat.configureEnemyBody(sprite)
+    sprite.setName(definition.id)
     this.roadCollision.track(sprite, true)
     const barY = sprite.y - (definition.rank === "boss" ? 125 : 72)
     const barWidth = definition.rank === "boss" ? 142 : 76
@@ -252,7 +255,7 @@ export class BirdPassScene extends BaseWorldScene {
       healthBack,
       healthFill,
       rankText,
-      nextSpecialAt: this.time.now + 900 + index * 85,
+      nextSpecialAt: this.combat.now + 900 + index * 85,
     }
     this.enemies.push(enemy)
     this.physics.add.collider(sprite, this.obstacles)
@@ -290,6 +293,11 @@ export class BirdPassScene extends BaseWorldScene {
         this.positionEnemyUi(enemy)
         continue
       }
+      if (this.combat.isEnemyRecoiling(enemy)) {
+        enemy.sprite.setDepth(enemy.sprite.y + 20)
+        this.positionEnemyUi(enemy)
+        continue
+      }
       const distance = Math.sqrt(distanceSq) || 1
       const dx = this.player.x - enemy.sprite.x
       const dy = this.player.y - enemy.sprite.y
@@ -302,32 +310,36 @@ export class BirdPassScene extends BaseWorldScene {
         enemy.sprite.setVelocity(Math.cos(enemy.patrolAngle) * enemy.definition.speed * 0.28, Math.sin(enemy.patrolAngle) * enemy.definition.speed * 0.22)
       }
       if (distance < 650 && time >= enemy.nextSpecialAt) this.warnBirdAttack(enemy, time)
-      enemy.sprite.setFlipX((enemy.sprite.body as Phaser.Physics.Arcade.Body).velocity.x < 0).setDepth(enemy.sprite.y + 20)
+      const velocity = (enemy.sprite.body as Phaser.Physics.Arcade.Body).velocity
+      actorFor(enemy.sprite)?.face(velocity.x, velocity.y)
+      enemy.sprite.setDepth(enemy.sprite.y + 20)
       this.positionEnemyUi(enemy)
     }
   }
 
   private warnBirdAttack(enemy: RuntimeEnemy, time: number): void {
+    actorFor(enemy.sprite)?.face(this.player.x - enemy.sprite.x, this.player.y - enemy.sprite.y)
     const behavior = enemy.definition.behavior
     const warningMs = behavior === "feather-single" ? 360 : behavior === "feather-fan" ? 650 : 720
     enemy.nextSpecialAt = time + (behavior === "feather-single" ? 1800 : behavior === "feather-fan" ? 2500 : 2800)
     const warning = this.add.circle(enemy.sprite.x, enemy.sprite.y, behavior === "feather-single" ? 42 : 66, 0xffd55a, 0.18).setStrokeStyle(3, 0xffdf7a, 0.95).setDepth(2500)
     this.tweens.add({ targets: warning, scale: 1.35, alpha: 0, duration: warningMs, onComplete: () => warning.destroy() })
-    this.time.delayedCall(warningMs, () => {
+    let shotAngle = 0
+    actorFor(enemy.sprite)?.play(behavior === "feather-dive" ? "charge" : "shoot", { duration: warningMs + 300, impactAt: warningMs, onCancel: () => warning.destroy(), onImpact: () => {
       if (!enemy.sprite.active) return
       const angle = Phaser.Math.Angle.Between(enemy.sprite.x, enemy.sprite.y, this.player.x, this.player.y)
+      shotAngle = angle
       if (behavior === "feather-single") {
         this.fireFeather(enemy, angle, 410)
-        if (gameStore.state.difficulty === "hard" || gameStore.state.difficulty === "impossible") {
-          this.time.delayedCall(150, () => enemy.sprite.active && this.fireFeather(enemy, angle + 0.045, 420))
-        }
       } else if (behavior === "feather-fan") {
         for (const offset of [-0.18, 0, 0.18]) this.fireFeather(enemy, angle + offset, 390)
       } else {
         for (const offset of [-0.23, 0, 0.23]) this.fireFeather(enemy, angle + offset, 440)
         enemy.sprite.setVelocity(Math.cos(angle) * 360, Math.sin(angle) * 360)
       }
-    })
+    }, markers: [{ at: warningMs + 150, callback: () => {
+      if (enemy.sprite.active && behavior === "feather-single" && (gameStore.state.difficulty === "hard" || gameStore.state.difficulty === "impossible")) this.fireFeather(enemy, shotAngle + 0.045, 420)
+    } }] })
   }
 
   private updateTurtle(enemy: RuntimeEnemy, time: number): void {
@@ -335,12 +347,14 @@ export class BirdPassScene extends BaseWorldScene {
     if (this.turtlePhaseValue === "defeated") return
     if (time < this.turtleStunnedUntil) {
       enemy.sprite.setVelocity(0, 0).setTint(0xffef8a)
+      actorFor(enemy.sprite)?.setState("stunned")
       return
     }
     enemy.sprite.clearTint()
     if (this.turtlePhaseValue === 2 && time < this.turtleRollingUntil) {
       enemy.sprite.setVelocity(this.turtleRollDirection.x * 520, this.turtleRollDirection.y * 520)
-      enemy.sprite.setAngularVelocity(430)
+      actorFor(enemy.sprite)?.face(this.turtleRollDirection.x, this.turtleRollDirection.y)
+      actorFor(enemy.sprite)?.setState("roll")
       for (const pylon of this.pylons) {
         if (Phaser.Math.Distance.Between(enemy.sprite.x, enemy.sprite.y, pylon.x, pylon.y) < 92) {
           this.stunTurtle(enemy, time, pylon)
@@ -349,7 +363,8 @@ export class BirdPassScene extends BaseWorldScene {
       }
       return
     }
-    enemy.sprite.setAngularVelocity(0).setAngle(0).setVelocity(0, 0)
+    enemy.sprite.setVelocity(0, 0)
+    actorFor(enemy.sprite)?.setState(time < this.turtleVulnerableUntil ? "core-open" : "idle")
     if (time < this.turtleRollWarningUntil || time < enemy.nextSpecialAt) return
     if (this.turtlePhaseValue === 1) this.turtlePhaseOne(enemy, time)
     else if (this.turtlePhaseValue === 2) this.turtlePhaseTwo(enemy, time)
@@ -357,17 +372,19 @@ export class BirdPassScene extends BaseWorldScene {
   }
 
   private turtlePhaseOne(enemy: RuntimeEnemy, time: number): void {
+    actorFor(enemy.sprite)?.face(this.player.x - enemy.sprite.x, this.player.y - enemy.sprite.y)
     enemy.nextSpecialAt = time + 3300
     const angle = Phaser.Math.Angle.Between(enemy.sprite.x, enemy.sprite.y, this.player.x, this.player.y)
     this.warnAt(enemy.sprite.x, enemy.sprite.y, 105, 650)
-    this.time.delayedCall(650, () => {
+    actorFor(enemy.sprite)?.play("shoot", { duration: 830, impactAt: 650, onImpact: () => {
       if (!enemy.sprite.active) return
       for (const offset of [-0.36, -0.18, 0, 0.18, 0.36]) this.fireFeather(enemy, angle + offset, 420)
       this.openTurtleCore(2500, "Ядро открыто — атакуй или отражай перья!")
-    })
+    } })
   }
 
   private turtlePhaseTwo(enemy: RuntimeEnemy, time: number): void {
+    actorFor(enemy.sprite)?.face(this.player.x - enemy.sprite.x, this.player.y - enemy.sprite.y)
     enemy.nextSpecialAt = time + 3600
     this.turtleRollWarningUntil = time + 800
     const angle = Phaser.Math.Angle.Between(enemy.sprite.x, enemy.sprite.y, this.player.x, this.player.y)
@@ -375,12 +392,12 @@ export class BirdPassScene extends BaseWorldScene {
     const endY = enemy.sprite.y + Math.sin(angle) * 900
     const line = this.add.line(0, 0, enemy.sprite.x, enemy.sprite.y, endX, endY, 0xff785e, 0.24).setOrigin(0).setLineWidth(12).setDepth(2400)
     EventBus.emit(GameEvents.showMessage, "Бронепанцирь готовится к рывку — направь его в синюю опору!", 1600)
-    this.time.delayedCall(800, () => {
+    actorFor(enemy.sprite)?.play("charge", { duration: 980, impactAt: 800, onCancel: () => line.destroy(), onImpact: () => {
       line.destroy()
       if (!enemy.sprite.active) return
       this.turtleRollDirection.set(Math.cos(angle), Math.sin(angle))
-      this.turtleRollingUntil = this.time.now + 1800
-    })
+      this.turtleRollingUntil = this.combat.now + 1800
+    } })
   }
 
   private turtlePhaseThree(enemy: RuntimeEnemy, time: number): void {
@@ -388,51 +405,51 @@ export class BirdPassScene extends BaseWorldScene {
     enemy.sprite.setPosition(TURTLE_ARENA.x, TURTLE_ARENA.y)
     this.warnAt(enemy.sprite.x, enemy.sprite.y, 165, 700)
     EventBus.emit(GameEvents.showMessage, "Кольцо перьев! Укройся или перехвати три пера перчаткой.", 1700)
-    this.time.delayedCall(700, () => {
+    const falling: { x: number; y: number; warning: Phaser.GameObjects.Arc }[] = []
+    actorFor(enemy.sprite)?.play("cast", { duration: 1900, impactAt: 700, onImpact: () => {
       if (!enemy.sprite.active) return
       for (let index = 0; index < 14; index += 1) this.fireFeather(enemy, (Math.PI * 2 * index) / 14 + time * 0.001, 360)
-      this.warnFallingFeathers(enemy)
-      this.time.delayedCall(1200, () => {
-        if (enemy.sprite.active) this.openTurtleCore(3000, "Волна прошла — ядро открыто на три секунды!")
-      })
-    })
-  }
-
-  private warnFallingFeathers(enemy: RuntimeEnemy): void {
-    for (let index = 0; index < 3; index += 1) {
-      const targetX = Phaser.Math.Clamp(this.player.x + Phaser.Math.Between(-110, 110), 4060, 4720)
-      const targetY = Phaser.Math.Clamp(this.player.y + Phaser.Math.Between(-100, 100), 390, 1210)
-      const warning = this.add.circle(targetX, targetY, 48, 0xff785e, 0.18).setStrokeStyle(3, 0xff9b82, 0.9).setDepth(2500)
-      this.tweens.add({ targets: warning, alpha: 0.42, scale: 1.18, duration: 650, yoyo: true })
-      this.time.delayedCall(700 + index * 110, () => {
+      for (let index = 0; index < 3; index += 1) {
+        const x = Phaser.Math.Clamp(this.player.x + Phaser.Math.Between(-110, 110), 4060, 4720)
+        const y = Phaser.Math.Clamp(this.player.y + Phaser.Math.Between(-100, 100), 390, 1210)
+        const warning = this.add.circle(x, y, 48, 0xff785e, 0.18).setStrokeStyle(3, 0xff9b82, 0.9).setDepth(2500)
+        this.tweens.add({ targets: warning, alpha: 0.42, scale: 1.18, duration: 650, yoyo: true })
+        falling.push({ x, y, warning })
+      }
+    }, markers: [0, 1, 2].map((index) => ({ at: 1400 + index * 110, callback: () => {
+        const target = falling[index]
+        if (!target || !enemy.sprite.active) return
+        const { x: targetX, y: targetY, warning } = target
         warning.destroy()
-        if (!enemy.sprite.active) return
         const feather = this.physics.add.image(targetX, targetY - 280, "metal-feather").setDepth(2850).setRotation(Math.PI / 2)
         this.tweens.add({ targets: feather, y: targetY, duration: 260, onComplete: () => {
           feather.destroy()
           if (Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY) < 55) {
-            this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.time.now)
+            this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.combat.now)
           }
         } })
-      })
-    }
+    } })), onCancel: () => falling.forEach(({ warning }) => warning.destroy()), onComplete: () => {
+      if (enemy.sprite.active) this.openTurtleCore(3000, "Волна прошла — ядро открыто на три секунды!")
+    } })
   }
 
   private stunTurtle(enemy: RuntimeEnemy, time: number, pylon: Phaser.GameObjects.Arc): void {
     this.turtleRollingUntil = 0
     this.turtleStunnedUntil = time + 4000
     this.turtleVulnerableUntil = time + 4000
-    enemy.sprite.setVelocity(0, 0).setAngularVelocity(0)
+    enemy.sprite.setVelocity(0, 0)
+    actorFor(enemy.sprite)?.play("stunned", { duration: 4000 })
     this.tweens.add({ targets: pylon, scale: 1.35, alpha: 0.45, duration: 180, yoyo: true, repeat: 3 })
     EventBus.emit(GameEvents.showMessage, "⚡ Удар об опору! Бронепанцирь оглушён на четыре секунды.", 2100)
   }
 
   private openTurtleCore(duration: number, message: string): void {
-    this.turtleVulnerableUntil = Math.max(this.turtleVulnerableUntil, this.time.now + duration)
+    this.turtleVulnerableUntil = Math.max(this.turtleVulnerableUntil, this.combat.now + duration)
     const turtle = this.turtle()
     turtle?.sprite.setTint(0xb8f2ff)
+    if (turtle) actorFor(turtle.sprite)?.setState("core-open")
     this.time.delayedCall(duration, () => {
-      if (turtle?.sprite.active && this.time.now >= this.turtleVulnerableUntil) turtle.sprite.clearTint()
+      if (turtle?.sprite.active && this.combat.now >= this.turtleVulnerableUntil) turtle.sprite.clearTint()
     })
     EventBus.emit(GameEvents.showMessage, message, 1800)
   }
@@ -448,7 +465,7 @@ export class BirdPassScene extends BaseWorldScene {
     sprite.setDepth(2800).setRotation(angle).setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
     const body = sprite.body as Phaser.Physics.Arcade.Body
     body.setSize(27, 10)
-    const projectile: FeatherProjectile = { sprite, source, damage: source.definition.damage, bornAt: this.time.now, reflected: false }
+    const projectile: FeatherProjectile = { sprite, source, damage: source.definition.damage, bornAt: this.combat.now, reflected: false }
     this.feathers.push(projectile)
     this.physics.add.collider(sprite, this.obstacles, () => this.destroyFeather(projectile))
   }
@@ -508,8 +525,9 @@ export class BirdPassScene extends BaseWorldScene {
       }
       this.shieldLastUsed = time
       this.shieldUntil = time + gadget.durationMs
+      actorFor(this.player)?.play("gadget", { duration: 350 })
       this.player.setTint(0x6cc7ff)
-      this.time.delayedCall(gadget.durationMs, () => this.time.now >= this.shieldUntil && this.player?.clearTint())
+      this.time.delayedCall(gadget.durationMs, () => this.combat.now >= this.shieldUntil && this.player?.clearTint())
       EventBus.emit(GameEvents.showMessage, "Щит ждёт следующее перо или залп.", 1500)
       return
     }
@@ -521,6 +539,7 @@ export class BirdPassScene extends BaseWorldScene {
       }
       this.gloveLastUsed = time
       this.gloveUntil = time + 1500
+      actorFor(this.player)?.play("gadget", { duration: 350 })
       this.gloveCaptures = 0
       const field = this.add.circle(this.player.x, this.player.y, 220, 0x6adff6, 0.13).setStrokeStyle(3, 0x9cf4ff, 0.85).setDepth(2600)
       this.tweens.add({ targets: field, alpha: 0, duration: 1500, onUpdate: () => field.setPosition(this.player.x, this.player.y), onComplete: () => field.destroy() })
@@ -549,9 +568,27 @@ export class BirdPassScene extends BaseWorldScene {
   }
 
   private attack(): void {
+    const weapon = gameStore.state.equippedWeapon
+    const direction = this.lastDirection.clone()
+    actorFor(this.player)?.face(direction.x, direction.y)
+    actorFor(this.player)?.play(weapon === "melee" ? "attack" : "throw", {
+      duration: 450,
+      impactAt: 120,
+      onImpact: () => this.resolveAttack(weapon, direction),
+    })
+  }
+
+  private resolveAttack(weapon: typeof gameStore.state.equippedWeapon, direction: Phaser.Math.Vector2): void {
     const character = gameStore.state.character
     if (!character) return
-    const weapon = gameStore.state.equippedWeapon
+    // Commit the captured facing only for hit selection; movement remains free.
+    const currentDirection = this.lastDirection.clone()
+    this.lastDirection.copy(direction)
+    this.resolveAttackImpact(weapon, character)
+    this.lastDirection.copy(currentDirection)
+  }
+
+  private resolveAttackImpact(weapon: typeof gameStore.state.equippedWeapon, character: NonNullable<typeof gameStore.state.character>): void {
     if (weapon !== "melee") {
       this.throwProduce(weapon)
       return
@@ -600,7 +637,7 @@ export class BirdPassScene extends BaseWorldScene {
   }
 
   private hitEnemy(enemy: RuntimeEnemy, damage: number, knockback = 28, reflected = false): void {
-    if (enemy.definition.id === BIRD_PASS_TURTLE_ID && this.time.now >= this.turtleVulnerableUntil) {
+    if (enemy.definition.id === BIRD_PASS_TURTLE_ID && this.combat.now >= this.turtleVulnerableUntil) {
       EventBus.emit(GameEvents.showMessage, reflected ? "Перо отскочило от закрытого панциря." : "Панцирь закрыт — дождись открытого ядра.", 1250)
       return
     }
@@ -636,7 +673,7 @@ export class BirdPassScene extends BaseWorldScene {
   private handleDebugDamageEnemy(id: string, damage: number): void {
     const enemy = this.enemies.find(({ definition }) => definition.id === id)
     if (!enemy || !Number.isFinite(damage) || damage <= 0) return
-    if (enemy.definition.id === BIRD_PASS_TURTLE_ID) this.turtleVulnerableUntil = this.time.now + 1000
+    if (enemy.definition.id === BIRD_PASS_TURTLE_ID) this.turtleVulnerableUntil = this.combat.now + 1000
     this.hitEnemy(enemy, damage, 0)
   }
 

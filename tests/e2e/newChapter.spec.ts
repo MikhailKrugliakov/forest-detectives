@@ -1,0 +1,165 @@
+import { expect, test, type Page } from "@playwright/test"
+import { walkWaypoints } from "./helpers/navigation"
+import { VILLAGE_SEA_PATH } from "../../src/domain/villageLayout"
+
+const pageErrors = new WeakMap<Page, string[]>()
+test.beforeEach(({ page }) => {
+  const errors: string[] = []
+  pageErrors.set(page, errors)
+  page.on("pageerror", (error) => errors.push(error.message))
+})
+test.afterEach(({ page }) => expect(pageErrors.get(page) ?? [], "game runtime must not throw during transitions").toEqual([]))
+
+async function clickCanvas(page: Page, x: number, y: number) {
+  const box = await page.locator("canvas").boundingBox()
+  if (!box) throw new Error("No canvas")
+  await page.mouse.click(box.x + x / 1280 * box.width, box.y + y / 720 * box.height)
+}
+async function interact(page: Page, x: number, y: number) {
+  // The store changes location before the 230 ms scene transition finishes.
+  // Wait for the destination scene to attach controls before teleporting.
+  await expect.poll(() => page.evaluate(() => {
+    const state = window.__FOREST_GAME__!.store.state
+    const expected = state.location === "forest-village" && state.chapter >= 3
+      ? state.chapter === 4 ? "chapter-four" : "chapter-three"
+      : state.location
+    return document.querySelector<HTMLElement>("#game-status")?.dataset.screen === expected
+  })).toBe(true)
+  await page.evaluate(([x, y]) => window.__FOREST_GAME__!.teleport(x!, y!), [x, y])
+  await page.waitForTimeout(130)
+  await page.keyboard.press("e")
+}
+async function texts(page: Page) { return page.evaluate(() => window.__FOREST_GAME__!.getSceneTexts().join("\n")) }
+async function startFlood(page: Page) {
+  await page.goto("/?scene=ice-throne")
+  await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "ice-throne")
+  await page.evaluate(() => { const g = window.__FOREST_GAME__!; g.setDifficulty("walk"); g.damageEnemy("walrus-throne", 999) })
+  await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "walrus-complete")
+  await clickCanvas(page, 800, 548)
+  await expect.poll(() => texts(page)).toContain("Тревожный".toUpperCase())
+  await clickCanvas(page, 640, 544)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-ocean-intro", "true")
+  await expect(page.locator("#game-status")).toHaveAttribute("data-modal-open", "false")
+}
+
+test("snow name and interaction appear only after the turtle and a normal return", async ({ page }) => {
+  await page.goto("/?scene=forest-village")
+  await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "forest-village")
+  expect(await texts(page)).not.toContain("СНЕЖНАЯ ДОЛИНА")
+  await interact(page, -2250, 810)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "forest-village")
+  await page.evaluate(() => window.__FOREST_GAME__!.defeatEnemy("turtle-guardian"))
+  await interact(page, 1710, 730)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "mole-shop")
+  await interact(page, 700, 805)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-chapter", "3")
+  await expect.poll(() => texts(page)).toContain("СНЕЖНАЯ ДОЛИНА")
+  await interact(page, -2250, 810)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "snow-valley")
+})
+
+test("flood introduction opens a northern road walkable through every join in both directions", async ({ page }) => {
+  test.setTimeout(65_000)
+  await startFlood(page)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-flood", "true")
+  await expect.poll(() => texts(page)).toContain("К МОРЮ")
+  const path = VILLAGE_SEA_PATH.map(({ x, y }) => [x, y] as const)
+  await walkWaypoints(page, path)
+  await walkWaypoints(page, [...path].reverse())
+  await page.screenshot({ path: test.info().outputPath("flooded-village-square.png") })
+  // The narrower gap between the post office and Tim's house must also pass
+  // a real player in both directions, away from the exact centerline.
+  await page.evaluate(() => window.__FOREST_GAME__!.teleport(1290, 420))
+  await walkWaypoints(page, [[1268, 230], [1244, 130], [1268, 230], [1290, 420]])
+  await page.screenshot({ path: test.info().outputPath("village-northern-road.png") })
+  await page.evaluate(() => window.__FOREST_GAME__!.teleport(20, 180))
+  await page.waitForTimeout(250)
+  await page.screenshot({ path: test.info().outputPath("flooded-village-outskirts.png") })
+})
+
+test("old savings require a beach visit and the actual Mole purchase unlocks diving", async ({ page }) => {
+  test.setTimeout(60_000)
+  await startFlood(page)
+  await page.evaluate(() => window.__FOREST_GAME__!.awardGears("prepaid-scuba", 40))
+  await expect(page.locator("#game-status")).toHaveAttribute("data-return-to-mole", "false")
+  await interact(page, 1710, 730)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "mole-shop")
+  expect(await texts(page)).not.toContain("АКВАЛАНГ •")
+  await interact(page, 700, 805)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "forest-village")
+  await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "chapter-four")
+  await interact(page, 1200, 130)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "beach")
+  await expect(page.locator("#game-status")).toHaveAttribute("data-return-to-mole", "true")
+  const storeState = await page.evaluate(() => { const g = window.__FOREST_GAME__!; g.store.setLocation("sea"); return g.store.state.location })
+  expect(storeState).toBe("beach")
+  await interact(page, 150, 800)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "forest-village")
+  await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "chapter-four")
+  await interact(page, 1710, 730)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "mole-shop")
+  await interact(page, 1050, 610)
+  await expect.poll(() => texts(page)).toContain("АКВАЛАНГ ДЯДЮШКИ КРОТА")
+  const before = await page.evaluate(() => window.__FOREST_GAME__!.store.state.gears)
+  await clickCanvas(page, 640, 507)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-scuba", "true")
+  expect(await page.evaluate(() => window.__FOREST_GAME__!.store.state.gears)).toBe(before - 40)
+  await page.keyboard.press("Escape")
+  await interact(page, 700, 805)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "forest-village")
+  await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "chapter-four")
+  await interact(page, 1200, 130)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "beach")
+  await interact(page, 4650, 800)
+  await expect(page.locator("#game-status")).toHaveAttribute("data-location", "sea")
+  await expect(page.locator("#game-status")).toHaveAttribute("data-screen", "sea")
+  await expect.poll(() => page.evaluate(() => window.__FOREST_GAME__!.getActors().find(({ name }) => name === "player")?.sheetsReady)).toBe(true)
+  await page.waitForTimeout(350)
+  await page.screenshot({ path: test.info().outputPath("diving-with-scuba.png") })
+})
+
+test("sea bosses, reload and the mechanism save the village while keeping its northern road", async ({ page }) => {
+  test.setTimeout(65_000)
+  const status = page.locator("#game-status")
+  await page.goto("/?scene=sea")
+  await expect(status).toHaveAttribute("data-screen", "sea")
+  await page.evaluate(() => window.__FOREST_GAME__!.setDifficulty("walk"))
+  await interact(page, 4650, 800)
+  await expect.poll(() => texts(page)).toContain("Тигровая акула преграждает путь")
+  await expect(status).toHaveAttribute("data-location", "sea")
+  await page.evaluate(() => window.__FOREST_GAME__!.damageEnemy("tiger-shark", 999))
+  await expect(status).toHaveAttribute("data-shark-cleared", "true")
+  await interact(page, 4650, 800)
+  await expect(status).toHaveAttribute("data-screen", "trench")
+  await interact(page, 4590, 800)
+  await expect.poll(() => texts(page)).toContain("Сначала нужно победить Ихтиозавра")
+  await expect(status).toHaveAttribute("data-ocean-complete", "false")
+  await page.evaluate(() => window.__FOREST_GAME__!.damageEnemy("ichthyosaur", 999))
+  await expect(status).toHaveAttribute("data-ichthyosaur-cleared", "true")
+  expect(await page.evaluate(() => window.__FOREST_GAME__!.saveGame("slot-1"))).toBe(true)
+  await page.goto("/")
+  await expect(status).toHaveAttribute("data-screen", "main-menu")
+  await clickCanvas(page, 840, 407)
+  await expect(status).toHaveAttribute("data-screen", "trench")
+  await expect(status).toHaveAttribute("data-ocean-boss-phase", "defeated")
+  await expect(status).toHaveAttribute("data-flood", "true")
+  await expect(status).toHaveAttribute("data-ocean-complete", "false")
+  await interact(page, 4590, 800)
+  await expect(status).toHaveAttribute("data-screen", "ocean-complete")
+  await expect(status).toHaveAttribute("data-flood", "false")
+  await clickCanvas(page, 795, 542)
+  await expect(status).toHaveAttribute("data-screen", "chapter-four")
+  await expect(status).toHaveAttribute("data-location", "forest-village")
+  await expect(status).toHaveAttribute("data-ocean-complete", "true")
+  await expect.poll(() => texts(page)).toContain("К МОРЮ")
+  expect(await page.evaluate(() => window.__FOREST_GAME__!.store.state.inventory.filter(({ id }) => id === "coast-saviour-badge").length)).toBe(1)
+  await page.evaluate(() => window.__FOREST_GAME__!.saveGame("slot-1"))
+  await page.goto("/")
+  await expect(status).toHaveAttribute("data-screen", "main-menu")
+  await clickCanvas(page, 840, 407)
+  await expect(status).toHaveAttribute("data-screen", "chapter-four")
+  await expect(status).toHaveAttribute("data-flood", "false")
+  expect(await page.evaluate(() => window.__FOREST_GAME__!.store.state.inventory.filter(({ id }) => id === "coast-saviour-badge").length)).toBe(1)
+  await page.waitForTimeout(350)
+  await page.screenshot({ path: test.info().outputPath("village-saved-after-reload.png") })
+})

@@ -7,7 +7,15 @@ import { getCharacter } from "./characters"
 import { ENEMIES, QUEST_IDS, QUESTS, questProgress } from "./quests"
 import { guardiansDefeated, MOUNTAIN_ENEMIES, MOUNTAIN_REWARD } from "./mountain"
 import { BIRD_PASS_ENEMIES, BIRD_PASS_REWARD, BIRD_PASS_TURTLE_ID } from "./birdPass"
+import { SNOW_ENEMIES, WALRUS_ID, WALRUS_REWARD } from "./snow"
+import { KROK_ERRANDS, KROK_PRINCE_REWARD, KROK_SIEGE_ENEMIES, KROK_SIEGE_REWARD, siegeCleared } from "./krok"
 import { DIFFICULTY_IDS } from "./difficulty"
+import { chapterPrice, POTION_CHARGE_BASE_PRICE } from "./economy"
+import {
+  BEACH_SCRAP, BEACH_SCRAP_GEARS, emptyOceanState, ICHTHYOSAUR_ID, MEDUSA_SCHOOLS,
+  MEDUSA_SCHOOL_RESPAWN_MS, medusaSchool, OCEAN_ENEMIES, OCEAN_REWARD, SCUBA_ITEM, SCUBA_PRICE, TIGER_SHARK_ID,
+  type OceanLocationId,
+} from "./ocean"
 import {
   activePotionCooldowns,
   HEALING_POTION_CAPACITY,
@@ -33,6 +41,7 @@ import type {
   GadgetId,
   GameSession,
   HomeChallengeId,
+  KrokErrandId,
   LocationId,
   PuzzleAnswer,
   ProduceId,
@@ -43,13 +52,22 @@ import type {
   WeaponId,
 } from "./types"
 
-const ALL_ENEMIES = [...ENEMIES, ...MOUNTAIN_ENEMIES, ...BIRD_PASS_ENEMIES] as const
+const ALL_ENEMIES = [...ENEMIES, ...MOUNTAIN_ENEMIES, ...BIRD_PASS_ENEMIES, ...SNOW_ENEMIES, ...KROK_SIEGE_ENEMIES, ...OCEAN_ENEMIES] as const
 const LOCATION_IDS = new Set<LocationId>([
   "forest-clearing",
   "forest-village",
   "wild-forest",
   "mountain-hollow",
   "bird-pass",
+  "snow-valley",
+  "snow-city",
+  "krok-outskirts",
+  "krok-city",
+  "ice-palace",
+  "ice-throne",
+  "beach",
+  "sea",
+  "trench",
   "forest-mine",
   "melon-farm",
   "mole-shop",
@@ -95,7 +113,7 @@ export class GameStore {
       !["wolf", "fox", "rabbit", "watermelon", "sheepwolf"].includes(data.characterId) ||
       !data.location ||
       !LOCATION_IDS.has(data.location) ||
-      (data.chapter !== 1 && data.chapter !== 2 && data.chapter !== 3) ||
+      (data.chapter !== 1 && data.chapter !== 2 && data.chapter !== 3 && data.chapter !== 4) ||
       !Array.isArray(data.inventory) ||
       !Array.isArray(data.defeatedEnemies) ||
       !Array.isArray(data.enemyGearDrops) ||
@@ -112,6 +130,17 @@ export class GameStore {
       session.birdPassCleared ??= session.defeatedEnemies.includes(BIRD_PASS_TURTLE_ID)
       session.birdPassRewardClaimed ??= session.birdPassCleared
       session.chapterTwoCompleted ??= session.birdPassCleared
+      session.snowValleyEnemyDefeats ??= 0
+      session.snowCityEnemyDefeats ??= 0
+      session.icePalaceEnemyDefeats ??= 0
+      session.walrusCleared ??= session.defeatedEnemies.includes(WALRUS_ID)
+      session.walrusRewardClaimed ??= session.walrusCleared
+      session.krokSiegeCleared ??= siegeCleared(session.defeatedEnemies)
+      session.krokSiegeRewardClaimed ??= session.krokSiegeCleared
+      session.krokErrands ??= this.emptyKrokErrands()
+      for (const id of Object.keys(this.emptyKrokErrands()) as KrokErrandId[]) session.krokErrands[id] ??= { status: "available", completedTargets: [] }
+      session.princeQuest ??= { status: session.walrusCleared ? "ready" : "available" }
+      session.produceAmmo = Object.assign({ tomato: 0, cucumber: 0, "dense-tomato": 0, "large-cucumber": 0 }, session.produceAmmo)
       for (const [id, at] of Object.entries(session.enemyRespawnAt ?? {})) {
         if (!Number.isFinite(at) || at <= now) delete session.enemyRespawnAt[id]
       }
@@ -120,7 +149,22 @@ export class GameStore {
         location: drop.location ?? "wild-forest",
       }))
       session.healingPotionReadyAt = activePotionCooldowns(session.healingPotionReadyAt ?? [], now)
+      const ocean = { ...emptyOceanState(), ...session.ocean }
+      ocean.schools = Object.fromEntries(MEDUSA_SCHOOLS.map(({ id, enemyIds }) => {
+        const old = session.ocean?.schools?.[id]
+        return [id, { aggressive: old?.aggressive === true,
+          defeatedEnemies: Array.isArray(old?.defeatedEnemies) ? old.defeatedEnemies.filter((enemyId) => enemyIds.includes(enemyId)) : [],
+          respawnAt: Number.isFinite(old?.respawnAt) ? old!.respawnAt : null }]
+      }))
+      session.ocean = ocean
       this.session = { ...session, character: getCharacter(characterId as CharacterId) }
+      this.refreshMedusaSchoolsInternal(now)
+      if (["beach", "sea", "trench"].includes(this.session.location) && !this.canEnterOceanLocation(this.session.location as OceanLocationId)) {
+        this.session.entryFrom = this.session.location
+        this.session.location = "forest-village"
+      }
+      this.normalizeVillageChapter()
+      this.updateOceanReadiness()
       this.notify()
       return true
     } catch {
@@ -183,8 +227,9 @@ export class GameStore {
   beginVillageChapter(): void {
     const character = this.requireCharacter()
     this.session.entryFrom = this.session.location
-    this.session.chapter = 2
+    if (this.session.chapter < 2) this.session.chapter = 2
     this.session.location = "forest-village"
+    this.normalizeVillageChapter()
     this.session.maxHealth = calculateMaxHealth(character.stats.endurance)
     this.session.health = this.session.maxHealth
     this.session.stamina = this.session.maxStamina
@@ -200,9 +245,16 @@ export class GameStore {
 
   setLocation(location: LocationId, entryFrom?: LocationId | null): void {
     this.requireCharacter()
+    if (location === "ice-palace" && !this.canEnterIcePalace()) return
+    if (["beach", "sea", "trench"].includes(location) && !this.canEnterOceanLocation(location as OceanLocationId)) return
     if (entryFrom !== undefined) this.session.entryFrom = entryFrom
     else if (this.session.location !== location) this.session.entryFrom = this.session.location
     this.session.location = location
+    this.normalizeVillageChapter()
+    if (location === "beach") {
+      this.session.ocean.beachVisited = true
+      this.updateOceanReadiness()
+    }
     this.notify()
   }
 
@@ -241,9 +293,21 @@ export class GameStore {
   defeatEnemy(id: string, defeatedAt = Date.now(), x?: number, y?: number): boolean {
     const definition = ALL_ENEMIES.find((enemy) => enemy.id === id)
     if (!definition) return false
+    const school = medusaSchool(id)
+    if (school) {
+      this.refreshMedusaSchoolsInternal(defeatedAt)
+      const schoolState = this.session.ocean.schools[school.id]!
+      if (schoolState.defeatedEnemies.includes(id)) return false
+      schoolState.aggressive = true
+      schoolState.defeatedEnemies.push(id)
+      if (schoolState.defeatedEnemies.length === school.enemyIds.length) {
+        schoolState.respawnAt = defeatedAt + MEDUSA_SCHOOL_RESPAWN_MS
+        for (const memberId of school.enemyIds) this.session.enemyRespawnAt[memberId] = schoolState.respawnAt
+      }
+    }
     const firstDefeat = !this.session.defeatedEnemies.includes(id)
-    if (!firstDefeat && definition.rank === "boss") return false
-    if (definition?.respawnMs != null) {
+    if (!firstDefeat && definition.respawnMs === null) return false
+    if (!school && definition.respawnMs != null) {
       this.session.enemyRespawnAt[id] = defeatedAt + definition.respawnMs
     }
     if (firstDefeat) this.session.defeatedEnemies.push(id)
@@ -252,8 +316,11 @@ export class GameStore {
     this.session.totalEnemyDefeats += 1
     if (definition.location === "wild-forest") this.session.wildForestEnemyDefeats += 1
     else if (definition.location === "mountain-hollow") this.session.mountainEnemyDefeats += 1
-    else this.session.birdPassEnemyDefeats += 1
-    if (definition.id !== BIRD_PASS_TURTLE_ID) {
+    else if (definition.location === "bird-pass") this.session.birdPassEnemyDefeats += 1
+    else if (definition.location === "snow-valley") this.session.snowValleyEnemyDefeats += 1
+    else if (definition.location === "snow-city") this.session.snowCityEnemyDefeats += 1
+    else if (definition.location === "ice-palace") this.session.icePalaceEnemyDefeats += 1
+    if (definition.id !== BIRD_PASS_TURTLE_ID && definition.dropsGear !== false) {
       this.session.enemyGearDrops.push({
         id: `${id}:${defeatCount}`,
         enemyId: id,
@@ -269,6 +336,17 @@ export class GameStore {
       this.completeMountainInternal()
     }
     if (definition.id === BIRD_PASS_TURTLE_ID) this.completeBirdPassInternal()
+    if (definition.id === WALRUS_ID) this.completeWalrusInternal()
+    if (definition.id === TIGER_SHARK_ID) this.session.ocean.sharkCleared = true
+    if (definition.id === ICHTHYOSAUR_ID) this.session.ocean.ichthyosaurCleared = true
+    if (definition.location === "krok-outskirts" && siegeCleared(this.session.defeatedEnemies)) {
+      this.session.krokSiegeCleared = true
+      if (!this.session.krokSiegeRewardClaimed) {
+        this.session.krokSiegeRewardClaimed = true
+        this.awardGearsInternal("siege:krok", 8)
+        this.session.inventory.push({ ...KROK_SIEGE_REWARD })
+      }
+    }
     this.notify()
     return firstDefeat
   }
@@ -278,6 +356,7 @@ export class GameStore {
     if (!drop || drop.collected) return false
     drop.collected = true
     this.session.gears += 1
+    this.updateOceanReadiness()
     if (drop.containsPart && !this.session.collectedParts.includes(drop.id)) {
       this.session.collectedParts.push(drop.id)
       this.updateQuestReadiness("robot-parts")
@@ -330,6 +409,52 @@ export class GameStore {
     return this.session.errands[id].completedTargets.length
   }
 
+  acceptKrokErrand(id: KrokErrandId): boolean {
+    const errand = this.session.krokErrands[id]
+    if (errand.status !== "available") return false
+    errand.status = errand.completedTargets.length >= KROK_ERRANDS[id].target ? "ready" : "active"
+    this.notify()
+    return true
+  }
+
+  completeKrokTarget(id: KrokErrandId, target: string): boolean {
+    const errand = this.session.krokErrands[id]
+    if (errand.status !== "active" || errand.completedTargets.includes(target)) return false
+    errand.completedTargets.push(target)
+    if (errand.completedTargets.length >= KROK_ERRANDS[id].target) errand.status = "ready"
+    this.notify()
+    return true
+  }
+
+  turnInKrokErrand(id: KrokErrandId): boolean {
+    const errand = this.session.krokErrands[id]
+    if (errand.status !== "ready") return false
+    errand.status = "completed"
+    this.awardGearsInternal(`krok-errand:${id}`, KROK_ERRANDS[id].reward)
+    this.notify()
+    return true
+  }
+
+  acceptPrinceQuest(): boolean {
+    if (!this.session.krokSiegeCleared || this.session.princeQuest.status !== "available") return false
+    this.session.princeQuest.status = this.session.walrusCleared ? "ready" : "active"
+    this.notify()
+    return true
+  }
+
+  canEnterIcePalace(): boolean {
+    return this.session.chapter >= 3 && this.session.krokSiegeCleared && this.session.princeQuest.status !== "available"
+  }
+
+  turnInPrinceQuest(): boolean {
+    if (this.session.princeQuest.status !== "ready") return false
+    this.session.princeQuest.status = "completed"
+    this.awardGearsInternal("prince:walrus", 8)
+    if (!this.session.inventory.some(({ id }) => id === KROK_PRINCE_REWARD.id)) this.session.inventory.push({ ...KROK_PRINCE_REWARD })
+    this.notify()
+    return true
+  }
+
   completeHomeChallenge(id: HomeChallengeId): boolean {
     if (this.session.completedHomeChallenges.includes(id)) return false
     this.session.completedHomeChallenges.push(id)
@@ -338,10 +463,19 @@ export class GameStore {
     return true
   }
 
+  shopPrice(basePrice: number): number {
+    return chapterPrice(basePrice, this.session.chapter)
+  }
+
+  potionRefillPrice(now = Date.now()): number {
+    return activePotionCooldowns(this.session.healingPotionReadyAt, now).length * this.shopPrice(POTION_CHARGE_BASE_PRICE)
+  }
+
   purchaseGadget(id: GadgetId): boolean {
     const gadget = GADGETS[id]
-    if (this.session.ownedGadgets.includes(id) || this.session.gears < gadget.price) return false
-    this.session.gears -= gadget.price
+    const price = this.shopPrice(gadget.price)
+    if (this.session.ownedGadgets.includes(id) || this.session.gears < price) return false
+    this.session.gears -= price
     this.session.ownedGadgets.push(id)
     this.session.inventory.push({
       id,
@@ -364,11 +498,12 @@ export class GameStore {
 
   purchaseBuildingMaterial(id: BuildingMaterialId): boolean {
     const material = BUILDING_MATERIALS[id]
+    const price = this.shopPrice(material.price)
     if (
       this.session.ownedBuildingMaterials.includes(id) ||
-      this.session.gears < material.price
+      this.session.gears < price
     ) return false
-    this.session.gears -= material.price
+    this.session.gears -= price
     this.session.ownedBuildingMaterials.push(id)
     this.session.inventory.push({
       id,
@@ -383,9 +518,20 @@ export class GameStore {
 
   purchaseProduce(id: ProduceId): boolean {
     const produce = PRODUCE[id]
-    if (this.session.gears < produce.price) return false
-    this.session.gears -= produce.price
+    const price = this.shopPrice(produce.price)
+    if (this.session.gears < price) return false
+    this.session.gears -= price
     this.session.produceAmmo[id] += produce.packSize
+    this.notify()
+    return true
+  }
+
+  refillHealingPotions(now = Date.now()): boolean {
+    const missing = activePotionCooldowns(this.session.healingPotionReadyAt, now).length
+    const price = this.potionRefillPrice(now)
+    if (!missing || this.session.gears < price) return false
+    this.session.gears -= price
+    this.session.healingPotionReadyAt = []
     this.notify()
     return true
   }
@@ -495,6 +641,7 @@ export class GameStore {
       if (this.session.location !== "beaver-house") {
         this.session.entryFrom = this.session.location
         this.session.location = "forest-village"
+        this.normalizeVillageChapter()
       }
       this.session.health = this.session.maxHealth
       this.session.stamina = this.session.maxStamina
@@ -564,7 +711,7 @@ export class GameStore {
   }
 
   beginChapterThree(): boolean {
-    if (!this.session.birdPassCleared || this.session.chapter === 3) return false
+    if (!this.session.birdPassCleared || this.session.chapter >= 3) return false
     this.session.entryFrom = "bird-pass"
     this.session.chapter = 3
     this.session.location = "forest-village"
@@ -574,10 +721,128 @@ export class GameStore {
     return true
   }
 
+  completeWalrus(): boolean {
+    if (!this.session.defeatedEnemies.includes(WALRUS_ID) || this.session.walrusCleared) return false
+    this.completeWalrusInternal()
+    this.notify()
+    return true
+  }
+
+  beginOceanIntro(): boolean {
+    if (!this.session.walrusCleared || this.session.location !== "forest-village" || this.session.ocean.introSeen) return false
+    this.session.ocean.introSeen = true
+    this.notify()
+    return true
+  }
+
+  visitBeach(): boolean {
+    if (this.session.location !== "beach" || !this.canEnterOceanLocation("beach")) return false
+    const firstVisit = !this.session.ocean.beachVisited
+    this.session.ocean.beachVisited = true
+    this.updateOceanReadiness()
+    this.notify()
+    return firstVisit
+  }
+
+  canEnterOceanLocation(location: OceanLocationId): boolean {
+    const ocean = this.session.ocean
+    if (!this.session.walrusCleared || !ocean.introSeen) return false
+    if (location === "beach") return true
+    if (!ocean.hasScuba) return false
+    return location === "sea" || ocean.sharkCleared
+  }
+
+  purchaseScuba(): boolean {
+    const ocean = this.session.ocean
+    if (this.session.location !== "mole-shop" || !ocean.beachVisited || ocean.hasScuba || this.session.gears < SCUBA_PRICE) return false
+    this.session.gears -= SCUBA_PRICE
+    ocean.hasScuba = true
+    if (!this.session.inventory.some(({ id }) => id === SCUBA_ITEM.id)) this.session.inventory.push({ ...SCUBA_ITEM })
+    this.notify()
+    return true
+  }
+
+  collectBeachScrap(id: string): boolean {
+    if (this.session.location !== "beach" || !BEACH_SCRAP.some((pile) => pile.id === id)) return false
+    return this.awardGears(`beach-scrap:${id}`, BEACH_SCRAP_GEARS)
+  }
+
+  provokeMedusaSchool(enemyId: string): boolean {
+    const school = medusaSchool(enemyId)
+    if (!school) return false
+    const state = this.session.ocean.schools[school.id]!
+    if (state.aggressive || state.defeatedEnemies.includes(enemyId)) return false
+    state.aggressive = true
+    this.notify()
+    return true
+  }
+
+  isMedusaAggressive(enemyId: string): boolean {
+    const school = medusaSchool(enemyId)
+    return school ? this.session.ocean.schools[school.id]!.aggressive : false
+  }
+
+  isMedusaDefeated(enemyId: string): boolean {
+    const school = medusaSchool(enemyId)
+    return school ? this.session.ocean.schools[school.id]!.defeatedEnemies.includes(enemyId) : false
+  }
+
+  deferMedusaRespawns(pausedMs: number): void {
+    if (!Number.isFinite(pausedMs) || pausedMs <= 0) return
+    let changed = false
+    for (const school of MEDUSA_SCHOOLS) {
+      const state = this.session.ocean.schools[school.id]!
+      if (state.respawnAt === null) continue
+      state.respawnAt += pausedMs
+      for (const enemyId of school.enemyIds) this.session.enemyRespawnAt[enemyId] = state.respawnAt
+      changed = true
+    }
+    if (changed) this.notify()
+  }
+
+  refreshMedusaSchools(now = Date.now()): boolean {
+    const changed = this.refreshMedusaSchoolsInternal(now)
+    if (changed) this.notify()
+    return changed
+  }
+
+  finishOceanChapter(): boolean {
+    const ocean = this.session.ocean
+    if (this.session.location !== "trench" || !ocean.ichthyosaurCleared || ocean.mechanismDisabled) return false
+    ocean.mechanismDisabled = true
+    if (!this.session.inventory.some(({ id }) => id === OCEAN_REWARD.id)) this.session.inventory.push({ ...OCEAN_REWARD })
+    this.session.health = this.session.maxHealth
+    this.notify()
+    return true
+  }
+
   subscribe(listener: (session: Readonly<GameSession>) => void): () => void {
     this.listeners.add(listener)
     listener(this.session)
     return () => this.listeners.delete(listener)
+  }
+
+  private normalizeVillageChapter(): void {
+    if (this.session.walrusCleared) this.session.chapter = 4
+    else if (this.session.location === "forest-village" && this.session.birdPassCleared && this.session.chapter < 3) this.session.chapter = 3
+  }
+
+  private updateOceanReadiness(): void {
+    if (this.session.ocean.beachVisited && !this.session.ocean.hasScuba && this.session.gears >= SCUBA_PRICE) this.session.ocean.returnToMole = true
+  }
+
+  private refreshMedusaSchoolsInternal(now: number): boolean {
+    let changed = false
+    for (const school of MEDUSA_SCHOOLS) {
+      const state = this.session.ocean.schools[school.id]!
+      if (state.respawnAt === null || state.respawnAt > now) continue
+      state.aggressive = false
+      state.defeatedEnemies = []
+      state.respawnAt = null
+      for (const enemyId of school.enemyIds) delete this.session.enemyRespawnAt[enemyId]
+      changed = true
+    }
+    return changed
   }
 
   private requireCharacter() {
@@ -603,6 +868,7 @@ export class GameStore {
     if (amount <= 0 || this.session.rewardedGearSources.includes(sourceId)) return false
     this.session.rewardedGearSources.push(sourceId)
     this.session.gears += amount
+    this.updateOceanReadiness()
     return true
   }
 
@@ -629,6 +895,18 @@ export class GameStore {
     }
   }
 
+  private completeWalrusInternal(): void {
+    this.session.walrusCleared = true
+    this.session.chapter = 4
+    this.session.health = this.session.maxHealth
+    if (this.session.princeQuest.status === "active") this.session.princeQuest.status = "ready"
+    if (this.session.walrusRewardClaimed) return
+    this.session.walrusRewardClaimed = true
+    if (!this.session.inventory.some(({ id }) => id === WALRUS_REWARD.id)) {
+      this.session.inventory.push({ ...WALRUS_REWARD })
+    }
+  }
+
   private emptyQuests(): GameSession["quests"] {
     return {
       "lost-letters": { status: "available" },
@@ -647,6 +925,10 @@ export class GameStore {
       "fence-repair": { status: "available", completedTargets: [] },
       "trail-signs": { status: "available", completedTargets: [] },
     }
+  }
+
+  private emptyKrokErrands(): GameSession["krokErrands"] {
+    return { rivets: { status: "available", completedTargets: [] }, tablets: { status: "available", completedTargets: [] }, medicine: { status: "available", completedTargets: [] }, "street-lamps": { status: "available", completedTargets: [] } }
   }
 
   private emptySession(): GameSession {
@@ -671,6 +953,13 @@ export class GameStore {
       wildForestEnemyDefeats: 0,
       mountainEnemyDefeats: 0,
       birdPassEnemyDefeats: 0,
+      snowValleyEnemyDefeats: 0,
+      snowCityEnemyDefeats: 0,
+      krokSiegeCleared: false,
+      krokSiegeRewardClaimed: false,
+      krokErrands: this.emptyKrokErrands(),
+      princeQuest: { status: "available" },
+      icePalaceEnemyDefeats: 0,
       enemyDefeatCounts: {},
       enemyGearDrops: [],
       enemyRespawnAt: {},
@@ -680,7 +969,7 @@ export class GameStore {
       ownedGadgets: [],
       equippedGadget: null,
       ownedBuildingMaterials: [],
-      produceAmmo: { tomato: 0, cucumber: 0 },
+      produceAmmo: { tomato: 0, cucumber: 0, "dense-tomato": 0, "large-cucumber": 0 },
       equippedWeapon: "melee",
       resources: { stone: 0, stick: 0, rope: 0, scrap: 0, iron: 0, diamond: 0 },
       collectedResourceNodes: [],
@@ -696,6 +985,9 @@ export class GameStore {
       birdPassCleared: false,
       birdPassRewardClaimed: false,
       chapterTwoCompleted: false,
+      walrusCleared: false,
+      walrusRewardClaimed: false,
+      ocean: emptyOceanState(),
     }
   }
 }

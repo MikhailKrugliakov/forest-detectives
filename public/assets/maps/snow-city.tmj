@@ -1,0 +1,19 @@
+{
+  "compressionlevel": -1, "height": 40, "infinite": false,
+  "layers": [
+    { "id": 1, "image": "../world/snow-city-west.jpg", "name": "background", "opacity": 1, "type": "imagelayer", "visible": true, "x": 0, "y": 0 },
+    { "draworder": "topdown", "id": 2, "name": "collisions", "objects": [
+      { "id": 1, "name": "north-buildings", "x": 0, "y": 0, "width": 4800, "height": 510 },
+      { "id": 2, "name": "south-buildings", "x": 0, "y": 1110, "width": 4800, "height": 490 },
+      { "id": 3, "name": "west-north", "x": 0, "y": 0, "width": 65, "height": 650 },
+      { "id": 4, "name": "west-south", "x": 0, "y": 950, "width": 65, "height": 650 },
+      { "id": 5, "name": "east-north", "x": 4735, "y": 0, "width": 65, "height": 650 },
+      { "id": 6, "name": "east-south", "x": 4735, "y": 950, "width": 65, "height": 650 }
+    ], "opacity": 1, "type": "objectgroup", "visible": true, "x": 0, "y": 0 },
+    { "draworder": "topdown", "id": 3, "name": "world-objects", "objects": [
+      { "id": 7, "name": "snow-valley", "point": true, "type": "portal", "x": 150, "y": 800 },
+      { "id": 8, "name": "krok-outskirts", "point": true, "type": "portal", "x": 4650, "y": 800 }
+    ], "opacity": 1, "type": "objectgroup", "visible": true, "x": 0, "y": 0 }
+  ],
+  "nextlayerid": 4, "nextobjectid": 9, "orientation": "orthogonal", "renderorder": "right-down", "tiledversion": "1.11.0", "tileheight": 40, "tilesets": [], "tilewidth": 40, "type": "map", "version": "1.10", "width": 120
+}

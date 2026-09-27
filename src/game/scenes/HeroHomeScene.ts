@@ -6,6 +6,8 @@ import type { CharacterId, LocationId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { COLORS, FONT } from "../ui"
 import { BaseWorldScene } from "./BaseWorldScene"
+import { actorFor } from "../animation/AnimatedActor"
+import { NpcController } from "../animation/NpcController"
 
 interface ChallengeConfig {
   title: string
@@ -58,8 +60,9 @@ export class HeroHomeScene extends BaseWorldScene {
     this.setupWorld(character, 1280, 800, 640, 690, 92, character.id === "watermelon" ? 106 : 128)
     this.createChallenge()
     if (owner !== character.id) {
-      this.add.image(190, 420, homeowner.assetKey).setDisplaySize(owner === "watermelon" ? 130 : 120, owner === "watermelon" ? 145 : 165).setDepth(450)
-      this.add.text(190, 520, homeowner.name, { fontFamily: FONT, fontSize: "17px", color: "#fff4cf", backgroundColor: "#173f38dd", padding: { x: 8, y: 4 } }).setOrigin(0.5).setDepth(530)
+      const resident = this.add.image(190, 420, homeowner.assetKey).setDisplaySize(owner === "watermelon" ? 130 : 120, owner === "watermelon" ? 145 : 165).setDepth(450)
+      const label = this.add.text(190, 520, homeowner.name, { fontFamily: FONT, fontSize: "17px", color: "#fff4cf", backgroundColor: "#173f38dd", padding: { x: 8, y: 4 } }).setOrigin(0.5).setDepth(530)
+      new NpcController(this, this.player).add(owner, resident, label)
     }
     const exitLabel = owner === "watermelon" ? "↓  НА ФЕРМУ" : "↓  В ДЕРЕВНЮ"
     this.add.text(640, 748, exitLabel, { fontFamily: FONT, fontSize: "18px", fontStyle: "bold", color: "#fff4cf", backgroundColor: "#173f38dd", padding: { x: 12, y: 6 } }).setOrigin(0.5).setDepth(760)
@@ -78,7 +81,10 @@ export class HeroHomeScene extends BaseWorldScene {
     const interactPressed = this.interactionPressed()
     const challengePressed = config.usesSpace ? this.attackPressed() : interactPressed
     if (challengePressed && this.nearestIndex >= 0) {
-      this.choose(this.nearestIndex)
+      const index = this.nearestIndex
+      const actor = actorFor(this.player)
+      if (actor?.isPlaying && actor.timeline.impactAt != null) return
+      actor?.play(config.usesSpace ? "attack" : "interact", { duration: 450, impactAt: 120, onImpact: () => this.choose(index) })
       return
     }
     if (interactPressed && this.atExit) {

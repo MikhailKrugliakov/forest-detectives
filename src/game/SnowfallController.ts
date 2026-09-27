@@ -7,6 +7,10 @@ const OUTDOOR_SCENES = new Set([
   "melon-farm",
   "mountain-hollow",
   "bird-pass",
+  "snow-valley",
+  "snow-city",
+  "krok-outskirts",
+  "krok-city",
 ])
 
 interface Snowflake {

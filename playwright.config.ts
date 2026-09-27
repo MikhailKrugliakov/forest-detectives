@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test"
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
+  workers: 2,
   retries: 0,
   reporter: "list",
   use: {
@@ -18,6 +19,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev -- --port 4173",
+    env: { FOREST_E2E: "1" },
     url: "http://127.0.0.1:4173",
     reuseExistingServer: true,
     timeout: 120_000,

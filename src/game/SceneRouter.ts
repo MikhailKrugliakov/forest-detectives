@@ -6,11 +6,20 @@ export function sceneKeyForLocation(location: LocationId): string {
 }
 
 export const WORLD_SCENES = [
+  "beach",
+  "sea",
+  "trench",
   "forest-clearing",
   "forest-village",
   "wild-forest",
   "mountain-hollow",
   "bird-pass",
+  "snow-valley",
+  "snow-city",
+  "krok-outskirts",
+  "krok-city",
+  "ice-palace",
+  "ice-throne",
   "forest-mine",
   "melon-farm",
   "mole-shop",

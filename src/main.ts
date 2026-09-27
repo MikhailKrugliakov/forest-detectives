@@ -18,8 +18,14 @@ import { MelonFarmScene } from "./game/scenes/MelonFarmScene"
 import { MainMenuScene } from "./game/scenes/MainMenuScene"
 import { MountainHollowScene } from "./game/scenes/MountainHollowScene"
 import { BirdPassScene } from "./game/scenes/BirdPassScene"
+import { IcePalaceScene, IceThroneScene, KrokOutskirtsScene, SnowCityScene, SnowValleyScene } from "./game/scenes/SnowWorldScene"
+import { KrokCityScene } from "./game/scenes/KrokCityScene"
+import { BeachScene, SeaScene, TrenchScene } from "./game/scenes/OceanWorldScene"
 import { SAVE_SLOTS, saveManager } from "./domain/saves"
 import { healingPotionState } from "./domain/healing"
+import { SnowfallController } from "./game/SnowfallController"
+import { sceneActors } from "./game/animation/AnimatedActor"
+import { AnimationGalleryScene } from "./game/scenes/AnimationGalleryScene"
 
 updateGameStatus("loading", "Игра загружается")
 saveManager.bindAutosave()
@@ -57,16 +63,26 @@ const config: Phaser.Types.Core.GameConfig = {
     WildForestScene,
     MountainHollowScene,
     BirdPassScene,
+    SnowValleyScene,
+    SnowCityScene,
+    KrokOutskirtsScene,
+    KrokCityScene,
+    IcePalaceScene,
+    IceThroneScene,
+    BeachScene,
+    SeaScene,
+    TrenchScene,
     ForestMineScene,
     MoleShopScene,
     HeroHomeScene,
     BeaverHouseScene,
     MelonFarmScene,
     UIScene,
+    ...(import.meta.env.DEV ? [AnimationGalleryScene] : []),
   ],
 }
 
-new Phaser.Game(config)
+const game = new Phaser.Game(config)
 
 gameStore.subscribe((state) => {
   const status = document.querySelector<HTMLElement>("#game-status")
@@ -86,9 +102,27 @@ gameStore.subscribe((state) => {
   status.dataset.mountainUnlocked = String(gameStore.isMountainUnlocked())
   status.dataset.birdEnemies = String(state.birdPassEnemyDefeats)
   status.dataset.birdPassCleared = String(state.birdPassCleared)
+  status.dataset.snowValleyEnemies = String(state.snowValleyEnemyDefeats)
+  status.dataset.snowCityEnemies = String(state.snowCityEnemyDefeats)
+  status.dataset.krokSiege = String(state.defeatedEnemies.filter((id) => id.startsWith("siege-")).length)
+  status.dataset.krokGateOpen = String(state.krokSiegeCleared)
+  status.dataset.krokErrands = Object.entries(state.krokErrands).map(([id, item]) => `${id}:${item.status}:${item.completedTargets.length}`).join(",")
+  status.dataset.princeQuest = state.princeQuest.status
+  status.dataset.premiumAmmo = `${state.produceAmmo["dense-tomato"]},${state.produceAmmo["large-cucumber"]}`
+  status.dataset.icePalaceEnemies = String(state.icePalaceEnemyDefeats)
+  status.dataset.walrusCleared = String(state.walrusCleared)
+  status.dataset.oceanIntro = String(state.ocean.introSeen)
+  status.dataset.beachVisited = String(state.ocean.beachVisited)
+  status.dataset.returnToMole = String(state.ocean.returnToMole)
+  status.dataset.scuba = String(state.ocean.hasScuba)
+  status.dataset.sharkCleared = String(state.ocean.sharkCleared)
+  status.dataset.ichthyosaurCleared = String(state.ocean.ichthyosaurCleared)
+  status.dataset.flood = String(state.walrusCleared && !state.ocean.mechanismDisabled)
+  status.dataset.oceanComplete = String(state.ocean.mechanismDisabled)
+  status.dataset.chapter = String(state.chapter)
   status.dataset.chapterTwoCompleted = String(state.chapterTwoCompleted)
   status.dataset.difficulty = state.difficulty
-  status.dataset.snow = String(state.chapter === 3)
+  status.dataset.snow = String(SnowfallController.shouldRun(state.location, state.chapter))
   status.dataset.uniqueEnemies = String(state.defeatedEnemies.length)
   status.dataset.enemyDefeatCounts = Object.entries(state.enemyDefeatCounts).map(([id, count]) => `${id}:${count}`).join(",")
   status.dataset.enemyGearDrops = String(state.enemyGearDrops.filter(({ collected }) => !collected).length)
@@ -116,6 +150,46 @@ gameStore.subscribe((state) => {
 
 if (import.meta.env.DEV) {
   window.__FOREST_GAME__ = {
+    getSceneTexts: () => {
+      const texts: string[] = []
+      const collect = (object: Phaser.GameObjects.GameObject) => {
+        if (object instanceof Phaser.GameObjects.Text && object.visible) texts.push(object.text)
+        if (object instanceof Phaser.GameObjects.Container && object.visible) object.list.forEach(collect)
+      }
+      for (const scene of game.scene.getScenes(true)) scene.children.list.forEach(collect)
+      return texts
+    },
+    getAnimationStats: () => ({
+      actors: game.scene.getScenes(false).reduce((count, scene) => count + sceneActors(scene).length, 0),
+      textures: game.textures.getTextureKeys().filter((key) => key.startsWith("animation:")),
+      roofTextures: game.textures.getTextureKeys().filter((key) => key.includes("-organic-v3-roof-")),
+      streetSeamTextures: game.textures.getTextureKeys().filter((key) => key.startsWith("krok-street-seam:")),
+      modalListeners: EventBus.listenerCount("modal-state"),
+      loaderListeners: game.scene.getScenes(false).reduce((count, scene) => count + scene.load.listenerCount(Phaser.Loader.Events.FILE_COMPLETE), 0),
+      displayObjects: game.scene.getScenes(false).reduce((count, scene) => count + scene.children.length, 0),
+      fps: game.loop.actualFps,
+    }),
+    // Development-only regression probe: render-only frames must keep walking.
+    setPhysicsStepRate: (fps) => {
+      if (fps !== 30 && fps !== 60) return
+      for (const scene of game.scene.getScenes(true)) scene.physics?.world.setFPS(fps)
+    },
+    getActors: () => game.scene.getScenes(false).flatMap((scene) => sceneActors(scene).map((actor) => {
+      const body = actor.carrier.body as Phaser.Physics.Arcade.Body | null
+      const label = actor.carrier.getData("npcLabel") as Phaser.GameObjects.Text | undefined
+      const target = actor.carrier.getData("npcTarget") as { x: number; y: number } | undefined
+      return {
+        key: actor.assetKey, name: actor.carrier.name,
+        x: actor.carrier.x, y: actor.carrier.y,
+        action: actor.action, facing: actor.facing, frame: String(actor.visual.frame.name), ready: actor.ready,
+        texture: actor.visual.texture.key,
+        sheetsReady: actor.ready && (!actor.assetKey.startsWith("hero-") || actor.utilityReady && actor.actionsReady && actor.motionReady && (!actor.locomotionAvailable || actor.locomotionReady)),
+        gait: actor.gaitSnapshot,
+        bodyWidth: body?.width ?? 0, bodyHeight: body?.height ?? 0,
+        visualX: actor.visual.x, visualY: actor.visual.y,
+        labelX: label?.x, labelY: label?.y, targetX: target?.x, targetY: target?.y,
+      }
+    })),
     store: gameStore,
     selectCharacter: (id) => gameStore.selectCharacter(id),
     collectClue: (id) => gameStore.collectClue(id),
@@ -136,6 +210,12 @@ if (import.meta.env.DEV) {
     purchaseGadget: (id) => gameStore.purchaseGadget(id),
     purchaseBuildingMaterial: (id) => gameStore.purchaseBuildingMaterial(id),
     purchaseProduce: (id) => gameStore.purchaseProduce(id),
+    refillHealingPotions: (now) => gameStore.refillHealingPotions(now),
+    acceptKrokErrand: (id) => gameStore.acceptKrokErrand(id),
+    completeKrokTarget: (id, target) => gameStore.completeKrokTarget(id, target),
+    turnInKrokErrand: (id) => gameStore.turnInKrokErrand(id),
+    acceptPrinceQuest: () => gameStore.acceptPrinceQuest(),
+    turnInPrinceQuest: () => gameStore.turnInPrinceQuest(),
     collectResource: (nodeId, id) => gameStore.collectResource(nodeId, id),
     craftPickaxe: () => gameStore.craftPickaxe(),
     equipWeapon: (id) => gameStore.equipWeapon(id),

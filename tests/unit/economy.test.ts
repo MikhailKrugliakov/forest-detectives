@@ -3,6 +3,8 @@ import { GameStore } from "../../src/domain/GameStore"
 import { GADGETS, TOTAL_GADGET_COST } from "../../src/domain/gadgets"
 import { BUILDING_MATERIALS, TOTAL_BUILDING_MATERIAL_COST } from "../../src/domain/materials"
 import { PRODUCE } from "../../src/domain/produce"
+import { chapterPrice } from "../../src/domain/economy"
+import type { ChapterId } from "../../src/domain/types"
 
 describe("магазин и деревенская экономика", () => {
   it("задаёт цены на четыре гаджета общей стоимостью 38", () => {
@@ -103,5 +105,49 @@ describe("магазин и деревенская экономика", () => {
     expect(store.state.produceAmmo.tomato).toBe(0)
     expect(store.state.equippedWeapon).toBe("melee")
     expect(store.consumeProduceShot()).toBeNull()
+  })
+})
+
+describe("цены по достигнутой главе", () => {
+  it("считает исходную цену и округляет только окончательный результат", () => {
+    expect(([1, 2, 3, 4] as ChapterId[]).map((chapter) => chapterPrice(12, chapter))).toEqual([12, 12, 18, 27])
+    expect(([1, 2, 3, 4] as ChapterId[]).map((chapter) => chapterPrice(1, chapter))).toEqual([1, 1, 2, 3])
+    expect(chapterPrice(5, 4)).toBe(12)
+    expect(chapterPrice(7, 4)).toBe(16)
+  })
+
+  it.each([1, 2, 3, 4] as ChapterId[])("проверяет и списывает одинаковую цену всех категорий в главе %i", (chapter) => {
+    const store = new GameStore()
+    store.selectCharacter("wolf")
+    const session = store.exportSerializedSession()
+    session.chapter = chapter
+    store.restoreSerializedSession(session)
+    const purchases = [
+      { base: GADGETS.jetpack.price, buy: () => store.purchaseGadget("jetpack") },
+      { base: BUILDING_MATERIALS["falling-wall"].price, buy: () => store.purchaseBuildingMaterial("falling-wall") },
+      { base: PRODUCE.cucumber.price, buy: () => store.purchaseProduce("cucumber") },
+    ]
+    purchases.forEach(({ base, buy }, index) => {
+      const price = chapterPrice(base, chapter)
+      store.awardGears(`budget-${index}`, price - 1)
+      expect(buy()).toBe(false)
+      store.awardGears(`last-gear-${index}`, 1)
+      expect(store.shopPrice(base)).toBe(price)
+      expect(buy()).toBe(true)
+      expect(store.state.gears).toBe(0)
+    })
+    const now = Date.now()
+    store.takeDamage(10)
+    store.useHealingPotion(now)
+    store.takeDamage(10)
+    store.useHealingPotion(now)
+    const refillPrice = chapterPrice(2, chapter) * 2
+    expect(store.potionRefillPrice(now)).toBe(refillPrice)
+    store.awardGears("refill-budget", refillPrice - 1)
+    expect(store.refillHealingPotions(now)).toBe(false)
+    store.awardGears("refill-last", 1)
+    expect(store.refillHealingPotions(now)).toBe(true)
+    expect(store.state.gears).toBe(0)
+    expect(store.state.healingPotionReadyAt).toEqual([])
   })
 })

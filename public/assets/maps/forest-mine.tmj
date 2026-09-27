@@ -24,11 +24,11 @@
         { "height": 1600, "id": 4, "name": "east", "width": 55, "x": 2345, "y": 0 },
         { "height": 250, "id": 5, "name": "upper-spine", "width": 330, "x": 730, "y": 55 },
         { "height": 300, "id": 6, "name": "left-mass", "width": 330, "x": 55, "y": 560 },
-        { "height": 250, "id": 7, "name": "center-island", "width": 300, "x": 620, "y": 650 },
+        { "height": 200, "id": 7, "name": "center-island", "width": 290, "x": 900, "y": 670 },
         { "height": 240, "id": 8, "name": "upper-right-island", "width": 350, "x": 1280, "y": 340 },
         { "height": 260, "id": 9, "name": "right-mass", "width": 330, "x": 2015, "y": 570 },
-        { "height": 260, "id": 10, "name": "lower-center-island", "width": 360, "x": 760, "y": 1285 },
-        { "height": 230, "id": 11, "name": "lower-right-island", "width": 330, "x": 1450, "y": 1230 }
+        { "height": 95, "id": 10, "name": "lower-center-island", "width": 360, "x": 760, "y": 1450 },
+        { "height": 240, "id": 11, "name": "lower-right-island", "width": 330, "x": 1450, "y": 1100 }
       ],
       "opacity": 1,
       "type": "objectgroup",

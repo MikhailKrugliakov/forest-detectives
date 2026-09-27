@@ -12,6 +12,7 @@ import { scaledEnemyHealth } from "../../domain/difficulty"
 import type { DifficultyId, EnemyDefinition, ProduceId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { CombatController } from "../CombatController"
+import { actorFor } from "../animation/AnimatedActor"
 import { RoadCollisionController } from "../RoadCollisionController"
 import { addResourceNode, collectResourceNode, resourceIdFromObjectType, resourcePrompt, type RuntimeResourceNode } from "../WorldResources"
 import { COLORS, FONT } from "../ui"
@@ -92,7 +93,7 @@ export class MountainHollowScene extends BaseWorldScene {
       character.id === "watermelon" ? 112 : 140,
     )
     this.roadCollision.track(this.player, true)
-    this.obstacles = this.loadMapCollisions("mountain-hollow-map")
+    this.obstacles = this.loadMapCollisions("mountain-hollow-map", MOUNTAIN_ROADS)
     this.createEnemies()
     this.createPickups()
     this.createResources()
@@ -101,7 +102,7 @@ export class MountainHollowScene extends BaseWorldScene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       EventBus.off("debug-damage-enemy", this.handleDebugDamageEnemy, this)
     })
-    this.combat.arm(this.time.now)
+    this.combat.arm(this.combat.now)
     this.updateDiagnostics()
     updateGameStatus("mountain-hollow", `Горная Лощина. Побед: ${gameStore.state.mountainEnemyDefeats}.`)
     this.cameras.main.fadeIn(300, 20, 38, 43)
@@ -119,11 +120,12 @@ export class MountainHollowScene extends BaseWorldScene {
 
   update(time: number, delta: number): void {
     if (!this.player?.body || this.returningToVillage) return
+    const stableDelta = Math.min(delta, 50)
+    this.updateWorldInput(stableDelta)
+    time = this.combat.advance(delta, this.modalOpen)
     const playerOnRoad = this.roadCollision.constrain(this.player)
     const status = document.querySelector<HTMLElement>("#game-status")
     if (status) status.dataset.playerOnRoad = String(playerOnRoad)
-    const stableDelta = Math.min(delta, 50)
-    this.updateWorldInput(stableDelta)
     if (this.modalOpen) return
     this.syncDifficulty()
     this.updateEnemies(time, stableDelta)
@@ -179,6 +181,7 @@ export class MountainHollowScene extends BaseWorldScene {
     sprite.setDisplaySize(size[0], size[1]).setDepth(definition.y + 20).setCollideWorldBounds(true)
     this.roadCollision.track(sprite, true)
     this.combat.configureEnemyBody(sprite)
+    sprite.setName(definition.id)
     const barY = sprite.y - (definition.rank === "boss" ? 118 : 72)
     const healthBack = this.add.rectangle(sprite.x, barY, definition.rank === "boss" ? 112 : 72, 10, 0x281916, 0.92)
     const healthFill = this.add.rectangle(sprite.x - (definition.rank === "boss" ? 55 : 35), barY, definition.rank === "boss" ? 110 : 70, 8, definition.rank === "boss" ? 0xb94cff : COLORS.coral, 1).setOrigin(0, 0.5)
@@ -194,7 +197,7 @@ export class MountainHollowScene extends BaseWorldScene {
     healthFill.setDepth(3001)
     rankText.setDepth(3002)
     const maxHp = scaledEnemyHealth(definition, gameStore.state.difficulty)
-    this.enemies.push({ definition, sprite, hp: maxHp, maxHp, homeX: sprite.x, homeY: sprite.y, patrolAngle: index * 1.27, healthBack, healthFill, rankText, nextSpecialAt: this.time.now + 800 + index * 90 })
+    this.enemies.push({ definition, sprite, hp: maxHp, maxHp, homeX: sprite.x, homeY: sprite.y, patrolAngle: index * 1.27, healthBack, healthFill, rankText, nextSpecialAt: this.combat.now + 800 + index * 90 })
     this.physics.add.collider(sprite, this.obstacles)
     this.combat.addSolidEnemyCollision(this, sprite, this.player, () => {
       this.enemyPlayerCollisions += 1
@@ -223,6 +226,11 @@ export class MountainHollowScene extends BaseWorldScene {
       const distanceSq = dx * dx + dy * dy
       if (distanceSq > AI_RADIUS_SQ) {
         enemy.sprite.setVelocity(0, 0)
+        this.positionEnemyUi(enemy)
+        continue
+      }
+      if (this.combat.isEnemyRecoiling(enemy)) {
+        enemy.sprite.setDepth(enemy.sprite.y + 20)
         this.positionEnemyUi(enemy)
         continue
       }
@@ -256,11 +264,21 @@ export class MountainHollowScene extends BaseWorldScene {
         const plen = Math.hypot(pdx, pdy) || 1
         enemy.sprite.setVelocity((pdx / plen) * enemy.definition.speed * 0.42, (pdy / plen) * enemy.definition.speed * 0.42)
       }
-      const velocityX = (enemy.sprite.body as Phaser.Physics.Arcade.Body).velocity.x
-      enemy.sprite.setFlipX(velocityX < 0).setDepth(enemy.sprite.y + 20)
+      const velocity = (enemy.sprite.body as Phaser.Physics.Arcade.Body).velocity
+      actorFor(enemy.sprite)?.face(velocity.x, velocity.y)
+      enemy.sprite.setDepth(enemy.sprite.y + 20)
       this.positionEnemyUi(enemy)
       if (enemy.definition.rank !== "boss" && distanceSq < 5184 && this.combat.canDamagePlayer(time)) {
-        this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, time)
+        const contact = () => {
+          if (enemy.sprite.active && Phaser.Math.Distance.Squared(this.player.x, this.player.y, enemy.sprite.x, enemy.sprite.y) < 5184) {
+            this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.combat.now)
+          }
+        }
+        const actor = actorFor(enemy.sprite)
+        // Touching a rushing enemy must not cancel its separately warned attack.
+        // Preserve the existing instant contact damage while that clip is active.
+        if (actor?.isPlaying) contact()
+        else actor?.play("attack", { duration: 450, impactAt: 0, onImpact: contact })
       }
     }
     const status = document.querySelector<HTMLElement>("#game-status")
@@ -282,11 +300,13 @@ export class MountainHollowScene extends BaseWorldScene {
   }
 
   private fireWaspSting(enemy: RuntimeEnemy, time: number): void {
+    actorFor(enemy.sprite)?.face(this.player.x - enemy.sprite.x, this.player.y - enemy.sprite.y)
     enemy.nextSpecialAt = time + 1800
     const targetX = this.player.x
     const targetY = this.player.y
     const warning = this.add.circle(targetX, targetY, 38, COLORS.yellow, 0.2).setStrokeStyle(2, COLORS.yellow, 0.9).setDepth(2500)
     this.tweens.add({ targets: warning, scale: 1.25, alpha: 0, duration: 450, onComplete: () => warning.destroy() })
+    actorFor(enemy.sprite)?.play("shoot", { duration: 600, impactAt: 0, onImpact: () => {
     const bolt = this.add.text(enemy.sprite.x, enemy.sprite.y, "✦", { fontFamily: FONT, fontSize: "26px", color: "#f7c948" }).setOrigin(0.5).setDepth(2600)
     this.tweens.add({
       targets: bolt,
@@ -296,17 +316,19 @@ export class MountainHollowScene extends BaseWorldScene {
       onComplete: () => {
         bolt.destroy()
         if (Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY) < 62) {
-          this.damagePlayer(enemy.definition.damage, targetX, targetY, this.time.now)
+          this.damagePlayer(enemy.definition.damage, targetX, targetY, this.combat.now)
         }
       },
     })
+    } })
   }
 
   private warnMantisDash(enemy: RuntimeEnemy, time: number): void {
+    actorFor(enemy.sprite)?.face(this.player.x - enemy.sprite.x, this.player.y - enemy.sprite.y)
     enemy.nextSpecialAt = time + 2400
     const warning = this.add.circle(enemy.sprite.x, enemy.sprite.y, 95, 0xffb38f, 0.18).setStrokeStyle(3, 0xffb38f, 0.9).setDepth(2400)
     enemy.sprite.setTint(0xffd1a8)
-    this.time.delayedCall(600, () => {
+    actorFor(enemy.sprite)?.play("charge", { duration: 1000, impactAt: 600, onCancel: () => warning.destroy(), onImpact: () => {
       warning.destroy()
       if (!enemy.sprite.active) return
       enemy.sprite.clearTint()
@@ -314,49 +336,47 @@ export class MountainHollowScene extends BaseWorldScene {
       const dy = this.player.y - enemy.sprite.y
       const len = Math.hypot(dx, dy) || 1
       enemy.sprite.setVelocity((dx / len) * 420, (dy / len) * 420)
-      if (len < 180) this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.time.now)
-    })
+      if (len < 180) this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.combat.now)
+    } })
   }
 
   private warnAxeSwing(enemy: RuntimeEnemy, time: number): void {
+    actorFor(enemy.sprite)?.face(this.player.x - enemy.sprite.x, this.player.y - enemy.sprite.y)
     enemy.nextSpecialAt = time + 2600
     const warning = this.add.circle(enemy.sprite.x, enemy.sprite.y, 190, 0xff8b72, 0.13).setStrokeStyle(4, 0xff8b72, 0.9).setDepth(2400)
     EventBus.emit(GameEvents.showMessage, "Стражник заносит топор — отойди от красного круга!", 1300)
-    this.time.delayedCall(750, () => {
+    actorFor(enemy.sprite)?.play("attack", { duration: 1100, impactAt: 750, onCancel: () => warning.destroy(), onImpact: () => {
       warning.destroy()
       if (!enemy.sprite.active) return
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.sprite.x, enemy.sprite.y) < 190) {
-        this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.time.now)
+        this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.combat.now)
       }
-    })
+    } })
   }
 
   private warnFlameCone(enemy: RuntimeEnemy, time: number): void {
+    actorFor(enemy.sprite)?.face(this.player.x - enemy.sprite.x, this.player.y - enemy.sprite.y)
     enemy.nextSpecialAt = time + 4300
     const angle = Phaser.Math.Angle.Between(enemy.sprite.x, enemy.sprite.y, this.player.x, this.player.y)
     const direction = new Phaser.Math.Vector2(Math.cos(angle), Math.sin(angle))
     const warning = this.add.arc(enemy.sprite.x, enemy.sprite.y, 410, Phaser.Math.RadToDeg(angle) - 27, Phaser.Math.RadToDeg(angle) + 27, false, 0xff8b2f, 0.16).setDepth(2400)
     warning.setStrokeStyle(3, 0xffb347, 0.9)
     EventBus.emit(GameEvents.showMessage, "Огнемёт заряжается — выйди из оранжевого сектора!", 1500)
-    this.time.delayedCall(900, () => {
-      if (!enemy.sprite.active) {
-        warning.destroy()
-        return
-      }
-      warning.setFillStyle(0xff6a21, 0.34)
-      for (let pulse = 0; pulse < 3; pulse += 1) {
-        this.time.delayedCall(pulse * 1000, () => {
+    actorFor(enemy.sprite)?.play("channel", {
+      duration: 3000,
+      onCancel: () => warning.destroy(),
+      onComplete: () => warning.destroy(),
+      markers: [0, 1, 2].map((pulse) => ({ at: 900 + pulse * 1000, callback: () => {
           if (!enemy.sprite.active) return
+          warning.setFillStyle(0xff6a21, 0.34)
           const dx = this.player.x - enemy.sprite.x
           const dy = this.player.y - enemy.sprite.y
           const distance = Math.hypot(dx, dy) || 1
           const dot = (dx / distance) * direction.x + (dy / distance) * direction.y
           if (distance < 410 && dot > Math.cos(Phaser.Math.DegToRad(27))) {
-            this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.time.now)
+            this.damagePlayer(enemy.definition.damage, enemy.sprite.x, enemy.sprite.y, this.combat.now)
           }
-        })
-      }
-      this.time.delayedCall(2100, () => warning.destroy())
+      } })),
     })
   }
 
@@ -378,9 +398,27 @@ export class MountainHollowScene extends BaseWorldScene {
   }
 
   private attack(): void {
+    const weapon = gameStore.state.equippedWeapon
+    const direction = this.lastDirection.clone()
+    actorFor(this.player)?.face(direction.x, direction.y)
+    actorFor(this.player)?.play(weapon === "melee" ? "attack" : "throw", {
+      duration: 450,
+      impactAt: 120,
+      onImpact: () => this.resolveAttack(weapon, direction),
+    })
+  }
+
+  private resolveAttack(weapon: typeof gameStore.state.equippedWeapon, direction: Phaser.Math.Vector2): void {
     const character = gameStore.state.character
     if (!character) return
-    const weapon = gameStore.state.equippedWeapon
+    // Commit the captured facing only for hit selection; movement remains free.
+    const currentDirection = this.lastDirection.clone()
+    this.lastDirection.copy(direction)
+    this.resolveAttackImpact(weapon, character)
+    this.lastDirection.copy(currentDirection)
+  }
+
+  private resolveAttackImpact(weapon: typeof gameStore.state.equippedWeapon, character: NonNullable<typeof gameStore.state.character>): void {
     if (weapon !== "melee") {
       this.throwProduce(weapon)
       return
@@ -484,9 +522,10 @@ export class MountainHollowScene extends BaseWorldScene {
     }
     this.shieldLastUsed = time
     this.shieldUntil = time + gadget.durationMs
+    actorFor(this.player)?.play("gadget", { duration: 350 })
     this.player.setTint(0x6cc7ff)
     this.time.delayedCall(gadget.durationMs, () => {
-      if (this.time.now >= this.shieldUntil) this.player?.clearTint()
+      if (this.combat.now >= this.shieldUntil) this.player?.clearTint()
     })
     EventBus.emit(GameEvents.showMessage, "Щит активен.", 1400)
   }

@@ -1,0 +1,37 @@
+{
+  "generator": "builtin imagegen",
+  "layout": {
+    "columns": 8,
+    "rows": 12,
+    "frameWidth": 128,
+    "frameHeight": 128
+  },
+  "records": [
+    {
+      "key": "turtle-guardian-special",
+      "reference": "enemies/turtle-guardian.png",
+      "blocks": [
+        "roll8, front/back/left/right",
+        "core-open8, front/back/left/right",
+        "stunned4+defeat4, front/back/left/right"
+      ],
+      "generated": "exec-c5176033-802c-4dfc-997c-0261e909eb96.png",
+      "chroma": "exec-147eb0f8-05b6-4826-bdbb-571caae332fc.png",
+      "prompt": "Use case: stylized-concept. Assettype: production animation atlas of the SAME robot turtle boss shown in reference. Preserve huge black-steel dome shell, gold/brass bands, orange glowing diamonds/eyes, cyan-rimmed chest core, four mechanical clawlegs and three feather cannons on shell. Do not make biologicalturtle. Fullbody detailedillustratedgameart.\nSTRICT96poses in EIGHTCOLUMNS and TWELVE ROWS, 1024x1536canvas; eachcell128x128, sprite fitsINSIDE100x105pixelswithatleast12pxpadding andgroundbaseliney118. Exactly12rows, not11. No text,labels,gridlines,shadow,scenery. Transparentalpha ifpossible otherwiseFLATPUREMAGENTA#FF00FF.\nRows1–4 = ROLL8poses perrow, four views FRONT/BACK/LEFT/RIGHT respectively. In eachrow: tuckhead/legs,closearmor,compactshell,rollquarterturn,rollhalfturn,rollthreequarterturn,rollfullturn,restorecompactstance. Cannonsfoldagainstshell tofit. Articulatedmovingparts,notjustcopies.\nRows5–8 = COREOPEN8poses samefourvieworder. Closedchest,openarmorflaps,exposebrightCYAN/orangecore,fullyopen,glowingpulse,dim,closeflaps,closed. Side/backviews showcorrectside/back anatomy and dorsalcorevents; never showfrontface inBACKrow.\nRows9–12 = STUNNED4thenDEFEAT4poses eachrow sameFRONT/BACK/LEFT/RIGHT. Columns1–4 stunned: legsbuckle,head droops,small wobble,headrecover. Columns5–8 defeatprogression: kneel,lowerbody,collapseflat,lightsoutdormant shell. No gore. 96distinctposes,nomissingrows. Consistentscale,completebody/legs/cannons, no posecrossescellborder.",
+      "chromaPrompt": "Change ONLY BACKGROUND to perfectlyuniformsolidMAGENTA#FF00FF. Preserve exact96sprites8columns12rows, allposes,originalmetal/icecolor,bodypositionsandsizes. No brown,grey,blue orgradient backdrop, no castshadows. Do not change characterart or grid.1024x1536. Everyemptybackgroundpixelmagenta compulsory."
+    },
+    {
+      "key": "walrus-special",
+      "reference": "enemies/walrus.png",
+      "blocks": [
+        "tail8, front/back/left/right",
+        "tusks8, front/back/left/right",
+        "cast8, front/back/left/right"
+      ],
+      "generated": "exec-9aaf95e1-a7f6-4800-b9bc-d52c620fafea.png",
+      "chroma": "exec-e11d6a54-cab1-49b7-ae19-afc0f8f81631.png",
+      "prompt": "Use case: stylized-concept. Assettype: production boss animation atlas. SAME walrus ice king fromreference: brownwalrus,largeivorytusks,blueeyes,blue/goldroyalrobe,whitefurtrim,crystalicecrownandarmarmor,blueicyflipperfeet andhugetail. Preservekingidentity,clothingcolorsandicecrystals. Fullbody detailedillustratedgameart.\nSTRICT96posesin EIGHTCOLUMNS TWELVEROWS on1024x1536canvas,128x128cells. Eachposewithin100x105pixelswith12pxpadding andgroundbaseliney118. No extra/missingrows, no overlap, not11rows! No text/labels/grid/shadows/scenery. Transparentalpha ifpossible otherwisePUREFLATMAGENTA#FF00FF.\nRows1–4 = TAILSWEEP8poses eachrow viewed FRONT/BACK/LEFT/RIGHT respectively: ready,bodytwist,taillift,tailwindsback,tailwhipsaroundtorso,followthrough,taildrops,recover. Tailisvisiblymoving,shouldersreact. Keepbody initscell.\nRows5–8 = TUSKLUNGE8poses SAMEfourdirections:ready,headlow,weightback,forwardlungingheadwithtusks,fulltuskthrust,recoil,headup,recover. Realneck/head/bodymotion;no separateprojectile.\nRows9–12 = ICICLECAST8poses SAMEFRONT/BACK/LEFT/RIGHT:ready,armraises,iceformsoverthepalm,armextends,handshootinggesture,recoil,armlowers,ready. Do not drawprojectilesoutsidecell; realicicles createdbygame. Fingers/shouldersbend,notjustshiftedbody.\nKeeprowdirectionfixed: rows3,7,11muzzle/tusksfacesLEFT; rows4,8,12facesRIGHT; backrows2,6,10showbackoftheking,noface. 96distinctfullposes,alllimbs/robe/tailfullycontained.",
+      "chromaPrompt": "Change ONLY BACKGROUND to perfectlyuniformsolidMAGENTA#FF00FF. Preserve exact96sprites8columns12rows, allposes,originalmetal/icecolor,bodypositionsandsizes. No brown,grey,blue orgradient backdrop, no castshadows. Do not change characterart or grid.1024x1536. Everyemptybackgroundpixelmagenta compulsory."
+    }
+  ]
+}

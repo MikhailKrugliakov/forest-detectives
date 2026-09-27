@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { DIFFICULTIES, rescaleRemainingHealth, scaledDifficultyValue, scaledTrapDamage } from "../../src/domain/difficulty"
+import { DIFFICULTIES, rescaleRemainingHealth, scaledDifficultyValue, scaledEnemyDamage, scaledTrapDamage } from "../../src/domain/difficulty"
 
 describe("уровни сложности", () => {
   it("использует заданные множители и округляет минимум до единицы", () => {
@@ -21,5 +21,18 @@ describe("уровни сложности", () => {
     expect(rescaleRemainingHealth(5, 10, 20)).toBe(10)
     expect(rescaleRemainingHealth(1, 10, 3)).toBe(1)
     expect(rescaleRemainingHealth(0, 10, 20)).toBe(0)
+  })
+
+  it("отдельно масштабирует урон врагов и усиливает третий уровень на 30 процентов", () => {
+    expect(DIFFICULTIES.walk.enemyDamageMultiplier).toBe(0)
+    expect(DIFFICULTIES.story.enemyDamageMultiplier).toBe(0.2)
+    expect(DIFFICULTIES.hard.enemyDamageMultiplier).toBe(0.975)
+    expect(DIFFICULTIES.impossible.enemyDamageMultiplier).toBe(1.5)
+    expect(scaledEnemyDamage({ damage: 30 }, "walk")).toBe(0)
+    expect(scaledEnemyDamage({ damage: 30 }, "story")).toBe(6)
+    expect(scaledEnemyDamage({ damage: 40 }, "hard")).toBe(39)
+    expect(scaledEnemyDamage({ damage: 30 }, "impossible")).toBe(45)
+    expect(scaledEnemyDamage({ damage: 1 }, "walk")).toBe(0)
+    expect(scaledTrapDamage(15, "hard")).toBe(15)
   })
 })

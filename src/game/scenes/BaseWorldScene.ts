@@ -6,6 +6,9 @@ import type { CharacterDefinition, LocationId } from "../../domain/types"
 import { EventBus, GameEvents } from "../EventBus"
 import { COLORS } from "../ui"
 import { SnowfallController } from "../SnowfallController"
+import { carveRoadThroughCollisions, type RoadNetwork } from "../../domain/roads"
+import { attachActor, actorFor } from "../animation/AnimatedActor"
+import { cameraFollowLerp } from "../CameraMotion"
 
 type MovementKeys = Record<
   "W" | "A" | "S" | "D" | "SHIFT" | "SPACE" | "E" | "Q" | "R" | "T" | "I" | "ESC",
@@ -26,11 +29,15 @@ export abstract class BaseWorldScene extends Phaser.Scene {
   protected lastDirection = new Phaser.Math.Vector2(1, 0)
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private walkClock = 0
-  private baseScaleX = 1
-  private baseScaleY = 1
+  private modalTweenScale = 1
+  private modalTimePaused = false
+  private modalPhysicsPaused = false
   private nextDiagnosticAt = 0
   private snowfall: SnowfallController | null = null
+  private queuedInteraction = false
+  private queuedAttack = false
+  private queuedGadget = false
+  private queuedInventory = false
 
   protected setupWorld(
     character: CharacterDefinition,
@@ -47,8 +54,17 @@ export abstract class BaseWorldScene extends Phaser.Scene {
     // lock or movement state from the previous visit into a restarted world.
     this.modalOpen = false
     this.lastDirection.set(1, 0)
-    this.walkClock = 0
+    this.modalTweenScale = 1
+    this.modalTimePaused = false
+    this.modalPhysicsPaused = false
+    this.time.paused = false
+    this.tweens.timeScale = 1
+    this.physics.world.resume()
     this.nextDiagnosticAt = 0
+    this.queuedInteraction = false
+    this.queuedAttack = false
+    this.queuedGadget = false
+    this.queuedInventory = false
 
     this.physics.world.setBounds(worldX, worldY, worldWidth, worldHeight)
     this.cameras.main.setBounds(worldX, worldY, worldWidth, worldHeight)
@@ -63,16 +79,29 @@ export abstract class BaseWorldScene extends Phaser.Scene {
       (this.player.width - body.width) / 2,
       this.player.height - body.height - this.player.height * 0.04,
     )
-    this.baseScaleX = this.player.scaleX
-    this.baseScaleY = this.player.scaleY
+    this.player.setName("player")
+    const actor = attachActor(this, this.player)
 
-    this.cameras.main.startFollow(this.player, true, 0.09, 0.09)
+    // Follow the interpolated visual anchor, not the 60 Hz physics staircase.
+    this.cameras.main.startFollow(actor.renderPosition, false, 0.09, 0.09)
     this.cameras.main.setZoom(1)
+    const updateCameraFollow = (_time: number, delta: number) => {
+      const lerp = cameraFollowLerp(delta, this.modalOpen)
+      this.cameras.main.setLerp(lerp, lerp)
+    }
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, updateCameraFollow)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.POST_UPDATE, updateCameraFollow)
+    })
 
     const keyboard = this.input.keyboard
     if (!keyboard) throw new Error("Для игры требуется клавиатура")
     this.movementKeys = keyboard.addKeys("W,A,S,D,SHIFT,SPACE,E,Q,R,T,I,ESC") as MovementKeys
     this.cursors = keyboard.createCursorKeys()
+    keyboard.on("keydown-E", this.queueInteraction, this)
+    keyboard.on("keydown-SPACE", this.queueAttack, this)
+    keyboard.on("keydown-Q", this.queueGadget, this)
+    keyboard.on("keydown-I", this.queueInventory, this)
 
     EventBus.on("modal-state", this.handleModalState, this)
     EventBus.on("debug-teleport", this.handleDebugTeleport, this)
@@ -85,6 +114,10 @@ export abstract class BaseWorldScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       EventBus.off("modal-state", this.handleModalState, this)
       EventBus.off("debug-teleport", this.handleDebugTeleport, this)
+      keyboard.off("keydown-E", this.queueInteraction, this)
+      keyboard.off("keydown-SPACE", this.queueAttack, this)
+      keyboard.off("keydown-Q", this.queueGadget, this)
+      keyboard.off("keydown-I", this.queueInventory, this)
       EventBus.emit(GameEvents.promptChanged, "")
       this.snowfall?.destroy()
       this.snowfall = null
@@ -92,12 +125,15 @@ export abstract class BaseWorldScene extends Phaser.Scene {
   }
 
   protected updateWorldInput(delta: number, movementEnabled = true): Phaser.Math.Vector2 {
-    if (Phaser.Input.Keyboard.JustDown(this.movementKeys.I)) {
+    const inventoryJustDown = Phaser.Input.Keyboard.JustDown(this.movementKeys.I)
+    const inventoryPressed = this.queuedInventory || inventoryJustDown
+    this.queuedInventory = false
+    if (inventoryPressed) {
       EventBus.emit(GameEvents.toggleInventory)
     }
     if (!movementEnabled || this.modalOpen) {
       this.player.setVelocity(0, 0)
-      this.updateWalkAnimation(false, delta, 0)
+      actorFor(this.player)?.setRunning(false)
       this.updatePositionDiagnostics()
       return new Phaser.Math.Vector2()
     }
@@ -118,6 +154,7 @@ export abstract class BaseWorldScene extends Phaser.Scene {
     ) {
       const result = gameStore.useHealingPotion()
       if (result.used) {
+        actorFor(this.player)?.play("heal", { duration: 600 })
         EventBus.emit(GameEvents.showMessage, `🧪 Восстановлено ${result.healed} здоровья. Зелий готово: ${result.ready}/3.`, 1900)
       } else if (result.reason === "full-health") {
         EventBus.emit(GameEvents.showMessage, "Здоровье уже полное — зелье не потрачено.", 1500)
@@ -149,12 +186,12 @@ export abstract class BaseWorldScene extends Phaser.Scene {
     const speed = calculateWalkSpeed(character.stats.agility) * (sprinting ? SPRINT_MULTIPLIER : 1)
     this.player.setVelocity(direction.x * speed, direction.y * speed)
     this.player.setDepth(this.player.y + 30)
-    this.updateWalkAnimation(moving, delta, direction.x)
+    actorFor(this.player)?.setRunning(sprinting)
     this.updatePositionDiagnostics()
     return direction
   }
 
-  protected loadMapCollisions(mapKey: string): Phaser.Physics.Arcade.StaticGroup {
+  protected loadMapCollisions(mapKey: string, roadNetwork?: RoadNetwork): Phaser.Physics.Arcade.StaticGroup {
     const map = this.make.tilemap({ key: mapKey })
     const layer = map.getObjectLayer("collisions")
     if (!layer) throw new Error(`В карте ${mapKey} нет слоя collisions`)
@@ -164,7 +201,7 @@ export abstract class BaseWorldScene extends Phaser.Scene {
       width: object.width ?? 0,
       height: object.height ?? 0,
     }))
-    return this.addCollisionRectangles(rectangles)
+    return this.addCollisionRectangles(roadNetwork ? carveRoadThroughCollisions(rectangles, roadNetwork) : rectangles)
   }
 
   protected addCollisionRectangles(
@@ -187,15 +224,30 @@ export abstract class BaseWorldScene extends Phaser.Scene {
   }
 
   protected interactionPressed(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.movementKeys.E)
+    const justDown = Phaser.Input.Keyboard.JustDown(this.movementKeys.E)
+    const pressed = this.queuedInteraction || justDown
+    this.queuedInteraction = false
+    const actor = actorFor(this.player)
+    // E must not replace a mining/challenge timeline before the owning scene
+    // gets to check whether that action is already in progress.
+    if (pressed && !actor?.isPlaying) actor?.play("interact", { duration: 420 })
+    return pressed
   }
 
   protected attackPressed(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.movementKeys.SPACE)
+    const justDown = Phaser.Input.Keyboard.JustDown(this.movementKeys.SPACE)
+    const pressed = this.queuedAttack || justDown
+    this.queuedAttack = false
+    return pressed
   }
 
   protected gadgetPressed(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.movementKeys.Q)
+    const justDown = Phaser.Input.Keyboard.JustDown(this.movementKeys.Q)
+    const pressed = this.queuedGadget || justDown
+    this.queuedGadget = false
+    // Only a successful gadget use may interrupt an action. Its scene knows
+    // ownership, cooldown and whether a valid target exists.
+    return pressed
   }
 
   protected mapObjects(mapKey: string, layerName = "world-objects"): Phaser.Types.Tilemaps.TiledObject[] {
@@ -211,30 +263,54 @@ export abstract class BaseWorldScene extends Phaser.Scene {
   }
 
   private handleModalState(open: boolean): void {
+    if (open !== this.modalOpen) {
+      if (open) {
+        this.modalTweenScale = this.tweens.timeScale
+        this.modalTimePaused = this.time.paused
+        this.modalPhysicsPaused = this.physics.world.isPaused
+        this.player.setVelocity(0, 0)
+        this.time.paused = true
+        this.tweens.timeScale = 0
+        this.physics.world.pause()
+      } else {
+        this.time.paused = this.modalTimePaused
+        this.tweens.timeScale = this.modalTweenScale
+        if (!this.modalPhysicsPaused) this.physics.world.resume()
+      }
+    }
     this.modalOpen = open
+    this.queuedInteraction = false
+    this.queuedAttack = false
+    this.queuedGadget = false
+    if (this.movementKeys) {
+      Phaser.Input.Keyboard.JustDown(this.movementKeys.E)
+      Phaser.Input.Keyboard.JustDown(this.movementKeys.SPACE)
+      Phaser.Input.Keyboard.JustDown(this.movementKeys.Q)
+      Phaser.Input.Keyboard.JustDown(this.movementKeys.I)
+      Phaser.Input.Keyboard.JustDown(this.movementKeys.R)
+      Phaser.Input.Keyboard.JustDown(this.movementKeys.T)
+    }
+  }
+
+  private queueInteraction(event: KeyboardEvent): void {
+    if (!this.modalOpen && !event.repeat) this.queuedInteraction = true
+  }
+
+  private queueAttack(event: KeyboardEvent): void {
+    if (!this.modalOpen && !event.repeat) this.queuedAttack = true
+  }
+
+  private queueGadget(event: KeyboardEvent): void {
+    if (!this.modalOpen && !event.repeat) this.queuedGadget = true
+  }
+
+  private queueInventory(event: KeyboardEvent): void {
+    if (!this.modalOpen && !event.repeat) this.queuedInventory = true
   }
 
   private handleDebugTeleport(x: number, y: number): void {
     this.player.setPosition(x, y)
     this.player.setVelocity(0, 0)
-  }
-
-  private updateWalkAnimation(moving: boolean, delta: number, directionX: number): void {
-    if (!moving) {
-      this.player.setScale(this.baseScaleX, this.baseScaleY)
-      this.player.setAngle(0)
-      return
-    }
-    this.walkClock += delta * 0.018
-    const bounce = Math.sin(this.walkClock)
-    const stretch = Math.abs(bounce) * 0.035
-    const facing =
-      directionX < -0.05 ? -1 : directionX > 0.05 ? 1 : Math.sign(this.player.scaleX) || 1
-    this.player.setScale(
-      this.baseScaleX * facing * (1 + stretch),
-      this.baseScaleY * (1 - stretch),
-    )
-    this.player.setAngle(bounce * 2.2)
   }
 
   private updatePositionDiagnostics(): void {

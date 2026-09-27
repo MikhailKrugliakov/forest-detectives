@@ -62,10 +62,20 @@
       "visible": true,
       "x": 0,
       "y": 0
+    },
+    {
+      "id": 4, "name": "npc-routes", "type": "objectgroup", "visible": false, "opacity": 1, "x": 0, "y": 0,
+      "objects": [
+        { "id": 36, "name": "melon-mitya", "x": 1020, "y": 1110, "polyline": [{ "x": 0, "y": 0 }, { "x": 100, "y": 0 }, { "x": 100, "y": 80 }] },
+        { "id": 37, "name": "melon-lada", "x": 1590, "y": 1120, "polyline": [{ "x": 0, "y": 0 }, { "x": 70, "y": 0 }, { "x": 70, "y": 90 }] },
+        { "id": 38, "name": "watermelon-senya", "x": 920, "y": 770, "polyline": [{ "x": 0, "y": 0 }, { "x": 110, "y": 0 }, { "x": 110, "y": 60 }] },
+        { "id": 39, "name": "watermelon-anya", "x": 1530, "y": 620, "polyline": [{ "x": 0, "y": 0 }, { "x": 0, "y": 140 }, { "x": -80, "y": 140 }] },
+        { "id": 40, "name": "watermelon-hero", "x": 1285, "y": 735, "polyline": [{ "x": 0, "y": 0 }, { "x": 60, "y": 0 }, { "x": 60, "y": 80 }] }
+      ]
     }
   ],
-  "nextlayerid": 4,
-  "nextobjectid": 36,
+  "nextlayerid": 5,
+  "nextobjectid": 41,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.0",

@@ -28,7 +28,7 @@ export type CharacterId = "wolf" | "fox" | "rabbit" | "watermelon" | "sheepwolf"
 export type ClueId = "parcel-print" | "ribbon" | "cardboard"
 export type ItemType = "equipment" | "clue" | "reward" | "gadget" | "building-material" | "tool"
 export type PuzzleAnswer = "stream" | "tree" | "burrow"
-export type ChapterId = 1 | 2 | 3
+export type ChapterId = 1 | 2 | 3 | 4
 export type DifficultyId = "walk" | "story" | "hard" | "impossible"
 export type LocationId =
   | "forest-clearing"
@@ -36,6 +36,15 @@ export type LocationId =
   | "wild-forest"
   | "mountain-hollow"
   | "bird-pass"
+  | "snow-valley"
+  | "snow-city"
+  | "krok-outskirts"
+  | "krok-city"
+  | "ice-palace"
+  | "ice-throne"
+  | "beach"
+  | "sea"
+  | "trench"
   | "forest-mine"
   | "melon-farm"
   | "mole-shop"
@@ -60,6 +69,20 @@ export type EnemyType =
   | "robot-owl"
   | "robot-hawk"
   | "turtle-guardian"
+  | "snowball"
+  | "snowman"
+  | "robot-albatross"
+  | "snow-golem"
+  | "ice-golem"
+  | "ice-catapult"
+  | "walrus"
+  | "robot-crab"
+  | "beach-albatross"
+  | "predatory-fish"
+  | "jellyfish"
+  | "spiny-fish"
+  | "tiger-shark"
+  | "ichthyosaur"
 export type EnemyRank = "weak" | "normal" | "strong" | "boss"
 export type EnemyBehavior =
   | "melee"
@@ -72,9 +95,19 @@ export type EnemyBehavior =
   | "feather-fan"
   | "feather-dive"
   | "turtle"
+  | "snow-rush"
+  | "snow-throw"
+  | "ice-slam"
+  | "ice-catapult"
+  | "walrus"
+  | "jellyfish"
+  | "spiny-slam"
+  | "tiger-shark"
+  | "ichthyosaur"
 export type GadgetId = "jetpack" | "magnetic-glove" | "gas-mask" | "pulse-shield"
 export type BuildingMaterialId = "collapsing-floor" | "falling-wall"
-export type ProduceId = "tomato" | "cucumber"
+export type ProduceId = "tomato" | "cucumber" | "dense-tomato" | "large-cucumber"
+export type KrokErrandId = "rivets" | "tablets" | "medicine" | "street-lamps"
 export type WeaponId = "melee" | ProduceId
 export type SurfaceResourceId = "stone" | "stick" | "rope" | "scrap"
 export type OreId = "iron" | "diamond"
@@ -119,11 +152,13 @@ export interface QuestDefinition {
   reward: InventoryItem
 }
 
+export type CombatLocationId = Extract<LocationId, "wild-forest" | "mountain-hollow" | "bird-pass" | "snow-valley" | "snow-city" | "krok-outskirts" | "ice-palace" | "ice-throne" | "beach" | "sea" | "trench">
+
 export interface EnemyDefinition {
   id: string
   type: EnemyType
   assetKey: string
-  location: "wild-forest" | "mountain-hollow" | "bird-pass"
+  location: CombatLocationId
   behavior: EnemyBehavior
   x: number
   y: number
@@ -132,6 +167,7 @@ export interface EnemyDefinition {
   speed: number
   rank: EnemyRank
   respawnMs: number | null
+  dropsGear?: boolean
 }
 
 export interface GadgetDefinition {
@@ -199,8 +235,25 @@ export interface EnemyGearDrop {
   x: number
   y: number
   containsPart: boolean
-  location: "wild-forest" | "mountain-hollow" | "bird-pass"
+  location: CombatLocationId
   collected: boolean
+}
+
+export interface MedusaSchoolState {
+  aggressive: boolean
+  defeatedEnemies: string[]
+  respawnAt: number | null
+}
+
+export interface OceanState {
+  introSeen: boolean
+  beachVisited: boolean
+  returnToMole: boolean
+  hasScuba: boolean
+  sharkCleared: boolean
+  ichthyosaurCleared: boolean
+  mechanismDisabled: boolean
+  schools: Record<string, MedusaSchoolState>
 }
 
 export interface GameSession {
@@ -223,6 +276,13 @@ export interface GameSession {
   wildForestEnemyDefeats: number
   mountainEnemyDefeats: number
   birdPassEnemyDefeats: number
+  snowValleyEnemyDefeats: number
+  snowCityEnemyDefeats: number
+  krokSiegeCleared: boolean
+  krokSiegeRewardClaimed: boolean
+  krokErrands: Record<KrokErrandId, ErrandState>
+  princeQuest: QuestState
+  icePalaceEnemyDefeats: number
   enemyDefeatCounts: Record<string, number>
   enemyGearDrops: EnemyGearDrop[]
   enemyRespawnAt: Record<string, number>
@@ -248,6 +308,9 @@ export interface GameSession {
   birdPassCleared: boolean
   birdPassRewardClaimed: boolean
   chapterTwoCompleted: boolean
+  walrusCleared: boolean
+  walrusRewardClaimed: boolean
+  ocean: OceanState
 }
 
 export type SaveSlotId = "auto" | "slot-1" | "slot-2" | "slot-3"
@@ -266,10 +329,11 @@ export interface SaveSummary {
   gears: number
   mountainCleared: boolean
   birdPassCleared: boolean
+  walrusCleared: boolean
 }
 
 export interface SaveEnvelope {
-  version: 2
+  version: 5
   savedAt: string
   slot: SaveSlotId
   summary: SaveSummary
